@@ -1,78 +1,24 @@
 import { create, props } from "@stylexjs/stylex";
 import { Button } from "@ui-sdk/react/button";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { artworkUrl } from "#/lib/musickit";
 import { motion } from "#/motion.stylex";
 import { useChat } from "./ChatContext";
 import { MusicNoteIcon } from "./icons";
 import { chatMedia, chatPopover, chatTokens as t } from "./tokens.stylex";
+import { useComposerPopoverHeight } from "./use-composer-popover-height";
 
 /** @ / で開く曲の検索候補ポップオーバー。メニューが閉じている間は何も描画しない。 */
 export function ChatSongPicker() {
   const { state, actions, meta } = useChat();
   const { menuOpen, searchQuery, keyboardOpen, songs, songsLoading, highlightedIndex } = state;
-  const [maxHeight, setMaxHeight] = useState<number>(chatPopover.maxHeight);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const collisionPadding = keyboardOpen
-    ? chatPopover.collisionPaddingCompact
-    : chatPopover.collisionPadding;
-
-  // 入力欄より上の空き高さ全体を使えるようにし、PC のみ上限を chatPopover.maxHeight に抑える。
-  useLayoutEffect(() => {
-    const composerEl = meta.composerEl ?? meta.composerRef.current;
-    if (!menuOpen || !composerEl) {
-      return;
-    }
-
-    let rafId = 0;
-    const shellEl = composerEl.closest("[data-chat-shell]");
-    const mainEl = shellEl?.querySelector("main") ?? null;
-    const compactMedia = window.matchMedia("(max-width: 540px)");
-
-    const updateMaxHeight = () => {
-      const rect = composerEl.getBoundingClientRect();
-      const vv = window.visualViewport;
-      const shellTop = shellEl ? shellEl.getBoundingClientRect().top : 0;
-      const mainTop = mainEl ? mainEl.getBoundingClientRect().top : shellTop;
-      const vvTop = vv ? vv.offsetTop : 0;
-      const topBoundary = Math.max(mainTop, shellTop, vvTop);
-      const available = Math.floor(
-        rect.top - topBoundary - chatPopover.sideOffset - collisionPadding,
-      );
-      const maxCap = compactMedia.matches ? available : chatPopover.maxHeight;
-      const next = Math.max(chatPopover.minHeight, Math.min(maxCap, available));
-      setMaxHeight((prev) => (prev === next ? prev : next));
-    };
-
-    const scheduleUpdate = () => {
-      updateMaxHeight();
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(updateMaxHeight);
-    };
-
-    updateMaxHeight();
-
-    const vv = window.visualViewport;
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(scheduleUpdate) : null;
-    ro?.observe(composerEl);
-    if (shellEl) {
-      ro?.observe(shellEl);
-    }
-    if (mainEl) {
-      ro?.observe(mainEl);
-    }
-    vv?.addEventListener("resize", scheduleUpdate);
-    vv?.addEventListener("scroll", scheduleUpdate);
-    window.addEventListener("resize", scheduleUpdate);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      ro?.disconnect();
-      vv?.removeEventListener("resize", scheduleUpdate);
-      vv?.removeEventListener("scroll", scheduleUpdate);
-      window.removeEventListener("resize", scheduleUpdate);
-    };
-  }, [collisionPadding, meta.composerEl, meta.composerRef, menuOpen]);
+  const maxHeight = useComposerPopoverHeight({
+    open: menuOpen,
+    keyboardOpen,
+    composerEl: meta.composerEl,
+    composerRef: meta.composerRef,
+  });
 
   // コンポーザーの外側を押したら閉じる。
   useEffect(() => {

@@ -35,14 +35,14 @@ type ChatActions = {
   highlightSong: (index: number) => void;
   moveHighlight: (direction: -1 | 1) => void;
   registerTextarea: (el: HTMLTextAreaElement | null) => void;
-  registerComposer: (el: HTMLFormElement | null) => void;
+  registerComposer: (el: HTMLElement | null) => void;
 };
 
 type ChatMeta = {
   maxLength: number;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
-  composerRef: RefObject<HTMLFormElement | null>;
-  composerEl: HTMLFormElement | null;
+  composerRef: RefObject<HTMLElement | null>;
+  composerEl: HTMLElement | null;
   pickerId: string;
 };
 

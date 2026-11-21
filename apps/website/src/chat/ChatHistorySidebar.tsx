@@ -15,6 +15,7 @@ import {
   ScrollAreaThumb,
   ScrollAreaViewport,
 } from "@ui-sdk/react/scroll-area";
+import { useLayoutEffect, useRef } from "react";
 import { artworkUrl } from "#/lib/musickit";
 import type { AppleSong } from "#/lib/musickit";
 import type { PostView } from "#/lib/posts";
@@ -196,6 +197,55 @@ function Desktop() {
 
 function MobileDrawer() {
   const { state, actions } = useChatHistory();
+  const backdropRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const animationsRef = useRef<Array<Animation>>([]);
+
+  const cancelOpenAnimations = () => {
+    for (const anim of animationsRef.current) {
+      anim.cancel();
+    }
+    animationsRef.current = [];
+  };
+
+  useLayoutEffect(() => {
+    if (state.isDesktop || !state.mobileOpen) {
+      return;
+    }
+    const backdropEl = backdropRef.current;
+    const contentEl = contentRef.current;
+    if (
+      !backdropEl ||
+      !contentEl ||
+      typeof backdropEl.animate !== "function" ||
+      typeof contentEl.animate !== "function"
+    ) {
+      return;
+    }
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const duration = reducedMotion ? 150 : 300;
+    const easing = reducedMotion ? "ease" : motion.easeDrawer;
+
+    const backdropAnim = backdropEl.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration,
+      easing,
+    });
+    const contentAnim = reducedMotion
+      ? contentEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing })
+      : contentEl.animate([{ transform: "translateX(-100%)" }, { transform: "translateX(0)" }], {
+          duration,
+          easing,
+        });
+
+    animationsRef.current = [backdropAnim, contentAnim];
+
+    return () => {
+      backdropAnim.cancel();
+      contentAnim.cancel();
+      animationsRef.current = [];
+    };
+  }, [state.isDesktop, state.mobileOpen]);
 
   if (state.isDesktop) {
     return null;
@@ -203,8 +253,13 @@ function MobileDrawer() {
 
   return (
     <Drawer side="left" open={state.mobileOpen} onOpenChange={actions.setMobileOpen}>
-      <DrawerBackdrop {...props(styles.backdrop)} />
-      <DrawerContent initialFocus="content" {...props(styles.drawerContent)}>
+      <DrawerBackdrop ref={backdropRef} {...props(styles.backdrop)} />
+      <DrawerContent
+        ref={contentRef}
+        initialFocus="content"
+        onPointerDown={cancelOpenAnimations}
+        {...props(styles.drawerContent)}
+      >
         <div {...props(styles.drawerHeader)}>
           <div {...props(styles.brand)}>
             <AppShell.BrandIcon />

@@ -47,8 +47,8 @@ export function ChatProvider({
   const [songsLoading, setSongsLoading] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const composerRef = useRef<HTMLFormElement | null>(null);
-  const [composerEl, setComposerEl] = useState<HTMLFormElement | null>(null);
+  const composerRef = useRef<HTMLElement | null>(null);
+  const [composerEl, setComposerEl] = useState<HTMLElement | null>(null);
   const pickerId = useId();
 
   const triggerMatch = parseSongTrigger(draft);
@@ -111,7 +111,7 @@ export function ChatProvider({
   const registerTextarea = useCallback((el: HTMLTextAreaElement | null) => {
     textareaRef.current = el;
   }, []);
-  const registerComposer = useCallback((el: HTMLFormElement | null) => {
+  const registerComposer = useCallback((el: HTMLElement | null) => {
     composerRef.current = el;
     setComposerEl((prev) => (prev === el ? prev : el));
   }, []);
