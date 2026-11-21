@@ -10,6 +10,7 @@ import { motion } from "#/motion.stylex";
 import { MiniPlayerBar } from "#/songs/MiniPlayerBar";
 import { usePreviewPlayer } from "#/songs/preview-player";
 import { ChatComposer } from "./ChatComposer";
+import { ComposerDock } from "./ComposerDock";
 import { AppShell } from "#/shell/AppShell";
 import { useChat } from "./ChatContext";
 import { useChatHistory } from "./ChatHistoryContext";
@@ -18,6 +19,10 @@ import { ChatHistorySidebar } from "./ChatHistorySidebar";
 import { ChatProvider } from "./ChatProvider";
 import { ChatThread } from "./ChatThread";
 import { DraftAssistProvider } from "./DraftAssistProvider";
+import { ListeningCalendarStrip } from "./listening/ListeningCalendarStrip";
+import { ListeningDayShelf } from "./listening/ListeningDayShelf";
+import { ListeningComposer } from "./listening/ListeningLogComposer";
+import { ListeningLogProvider } from "./listening/ListeningLogProvider";
 import { chatMedia, chatTokens as t } from "./tokens.stylex";
 
 function initials(name: string) {
@@ -210,23 +215,44 @@ function ChatShell({ user }: { user: Me }) {
 
         <MiniPlayerBar />
 
+        <ListeningCalendarStrip />
+
         <main {...props(styles.main)}>
           <div {...props(styles.mainInner)}>
+            <ListeningDayShelf />
             <ChatThread user={user} />
           </div>
         </main>
 
-        <ChatComposer.Frame>
-          <ChatComposer.DraftAssist />
-          <ChatComposer.SongPicker />
-          <ChatComposer.Attachment />
-          <ChatComposer.Input />
-          <ChatComposer.EmptyHints />
-          <ChatComposer.Toolbar>
-            <ChatComposer.PickSongButton />
-            <ChatComposer.Submit />
-          </ChatComposer.Toolbar>
-        </ChatComposer.Frame>
+        <ComposerDock.Root>
+          <ComposerDock.Header>
+            <ListeningComposer.ModeSwitch />
+            <ComposerDock.Panel mode="log">
+              <ListeningComposer.TargetDatePicker />
+            </ComposerDock.Panel>
+          </ComposerDock.Header>
+
+          <ComposerDock.Surface>
+            <ComposerDock.Panel mode="review">
+              <ChatComposer.Form>
+                <ChatComposer.DraftAssist />
+                <ChatComposer.SongPicker />
+                <ChatComposer.Attachment />
+                <ChatComposer.Input />
+                <ChatComposer.EmptyHints />
+                <ChatComposer.Toolbar>
+                  <ChatComposer.PickSongButton />
+                  <ChatComposer.Submit />
+                </ChatComposer.Toolbar>
+              </ChatComposer.Form>
+            </ComposerDock.Panel>
+
+            <ComposerDock.Panel mode="log">
+              <ListeningComposer.SearchPopover />
+              <ListeningComposer.Input />
+            </ComposerDock.Panel>
+          </ComposerDock.Surface>
+        </ComposerDock.Root>
       </div>
     </div>
   );
@@ -236,9 +262,11 @@ export function ChatWorkspace({ user }: { user: Me }) {
   return (
     <ChatHistoryProvider publicId={user.publicId}>
       <ChatProvider userPublicId={user.publicId}>
-        <DraftAssistProvider>
-          <ChatShell user={user} />
-        </DraftAssistProvider>
+        <ListeningLogProvider>
+          <DraftAssistProvider>
+            <ChatShell user={user} />
+          </DraftAssistProvider>
+        </ListeningLogProvider>
       </ChatProvider>
     </ChatHistoryProvider>
   );

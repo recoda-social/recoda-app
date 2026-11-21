@@ -19,6 +19,7 @@ export const relations = defineRelations(schema, (r) => ({
     likes: r.many.likes(),
     favoriteSongs: r.many.favoriteSongs(),
     favoriteArtists: r.many.favoriteArtists(),
+    listeningLogs: r.many.listeningLogs(),
     // 通報者と通報されたユーザーは、どちらも users を指すので alias で区別する。
     reportsMade: r.many.reports({ alias: "reporter" }),
     reportsReceived: r.many.reports({ alias: "targetUser" }),
@@ -32,6 +33,11 @@ export const relations = defineRelations(schema, (r) => ({
   songs: {
     // 「曲で探す」で使う。削除・非表示の投稿は含めない
     posts: r.many.posts({ from: r.songs.isrc, to: r.posts.songIsrc, where: visiblePost }),
+    listeningLogs: r.many.listeningLogs({ from: r.songs.isrc, to: r.listeningLogs.songIsrc }),
+  },
+  listeningLogs: {
+    user: r.one.users({ from: r.listeningLogs.userId, to: r.users.id, optional: false }),
+    song: r.one.songs({ from: r.listeningLogs.songIsrc, to: r.songs.isrc, optional: false }),
   },
   favoriteSongs: {
     user: r.one.users({ from: r.favoriteSongs.userId, to: r.users.id, optional: false }),

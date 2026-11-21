@@ -5,6 +5,7 @@ import { sessionMiddleware } from "./auth/session.ts";
 import type { SessionEnv } from "./auth/session.ts";
 import { draftAssistRoutes } from "./draft-assist/routes.ts";
 import { db } from "./lib/db.ts";
+import { listeningLogsRoutes } from "./listening-logs/routes.ts";
 import { logError, logInfo } from "./lib/log.ts";
 import { purgeExpired } from "./maintenance/usecases/purge-expired.ts";
 import { postsRoutes } from "./posts/routes.ts";
@@ -22,6 +23,7 @@ const app = new Hono<SessionEnv>()
   .route("/api", usersRoutes)
   .route("/api/music", musicRoutes)
   .route("/api/posts", postsRoutes)
+  .route("/api/listening-logs", listeningLogsRoutes)
   .route("/api/reports", reportsRoutes)
   .route("/api/admin", adminRoutes)
   .route("/api/draft-assist", draftAssistRoutes);

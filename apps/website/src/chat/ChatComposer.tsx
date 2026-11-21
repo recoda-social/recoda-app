@@ -14,25 +14,20 @@ import { useDraftAssist } from "./DraftAssistContext";
 import { ArrowUpIcon, CloseIcon, MusicNoteIcon, PlusIcon, SparklesIcon } from "./icons";
 import { chatMedia, chatTokens as t } from "./tokens.stylex";
 
-/** 入力欄の外枠。キーボード表示中は余白を詰める。中に他の部品を並べる。 */
-function Frame({ children }: { children: ReactNode }) {
-  const { state, actions } = useChat();
-  const { registerComposer, submit } = actions;
+function Form({ children }: { children: ReactNode }) {
+  const { actions } = useChat();
+  const { submit } = actions;
 
   return (
-    <div {...props(styles.dock, state.keyboardOpen && styles.dockKeyboardOpen)}>
-      <form
-        ref={registerComposer}
-        data-chat-composer=""
-        {...props(styles.composer)}
-        onSubmit={(event) => {
-          event.preventDefault();
-          submit();
-        }}
-      >
-        {children}
-      </form>
-    </div>
+    <form
+      {...props(styles.form)}
+      onSubmit={(event) => {
+        event.preventDefault();
+        submit();
+      }}
+    >
+      {children}
+    </form>
   );
 }
 
@@ -283,21 +278,8 @@ function Submit() {
   );
 }
 
-/**
- * チャットの入力欄。使う側が部品を並べて組み立てる。
- *
- * <ChatComposer.Frame>
- *   <ChatComposer.SongPicker />
- *   <ChatComposer.Attachment />
- *   <ChatComposer.Input />
- *   <ChatComposer.Toolbar>
- *     <ChatComposer.PickSongButton />
- *     <ChatComposer.Submit />
- *   </ChatComposer.Toolbar>
- * </ChatComposer.Frame>
- */
 export const ChatComposer = {
-  Frame,
+  Form,
   DraftAssist: ChatDraftAssist,
   EmptyHints: ChatEmptyHints,
   SongPicker: ChatSongPicker,
@@ -325,74 +307,13 @@ const fadeIn = keyframes({
 });
 
 const styles = create({
-  dock: {
-    position: "relative",
-    zIndex: 20,
-    flexShrink: 0,
-    width: "min(100%, 760px)",
-    paddingTop: {
-      default: 8,
-      [chatMedia.compact]: 4,
-    },
-    paddingRight: {
-      default: "max(16px, env(safe-area-inset-right, 0px))",
-      [chatMedia.compact]: "max(12px, env(safe-area-inset-right, 0px))",
-    },
-    paddingBottom: {
-      default: "max(20px, env(safe-area-inset-bottom, 0px))",
-      [chatMedia.compact]: "max(12px, env(safe-area-inset-bottom, 0px))",
-    },
-    paddingLeft: {
-      default: "max(16px, env(safe-area-inset-left, 0px))",
-      [chatMedia.compact]: "max(12px, env(safe-area-inset-left, 0px))",
-    },
-    marginBlock: 0,
-    marginInline: "auto",
-    backgroundImage: `linear-gradient(to bottom, color-mix(in srgb, ${t.bg} 0%, transparent), ${t.bg} 28%)`,
-  },
-  dockKeyboardOpen: {
-    paddingBottom: {
-      default: 12,
-      [chatMedia.compact]: 8,
-    },
-  },
-  composer: {
-    position: "relative",
+  form: {
     display: "flex",
     flexDirection: "column",
     gap: {
       default: 8,
       [chatMedia.compact]: 4,
     },
-    paddingTop: {
-      default: 12,
-      [chatMedia.compact]: 8,
-    },
-    paddingRight: {
-      default: 14,
-      [chatMedia.compact]: 10,
-    },
-    paddingBottom: {
-      default: 10,
-      [chatMedia.compact]: 8,
-    },
-    paddingLeft: {
-      default: 14,
-      [chatMedia.compact]: 12,
-    },
-    backgroundColor: t.surface,
-    borderColor: {
-      default: t.border,
-      ":focus-within": t.borderStrong,
-    },
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderRadius: {
-      default: 22,
-      [chatMedia.compact]: 18,
-    },
-    boxShadow: t.shadow,
-    transition: "border-color 0.15s ease",
   },
   attachment: {
     display: "inline-flex",
