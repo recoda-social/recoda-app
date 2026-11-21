@@ -13,7 +13,7 @@ function Topbar({ style, children }: { style?: StyleXStyles; children: ReactNode
 function BrandIcon() {
   return (
     <img
-      src="/otography-icon.png"
+      src="/recoda-icon.png"
       alt=""
       aria-hidden="true"
       width={24}
@@ -24,7 +24,7 @@ function BrandIcon() {
 }
 
 function BrandName({ style }: { style?: StyleXStyles }) {
-  return <span {...props(styles.brandName, style)}>otography</span>;
+  return <span {...props(styles.brandName, style)}>Recoda</span>;
 }
 
 function SignOutButton({ onClick }: { onClick: () => void }) {

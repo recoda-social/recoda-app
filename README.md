@@ -1,4 +1,4 @@
-# otography
+# Recoda
 
 曲への短い感想を投稿し、ほかの人の音楽体験に触れる SNS。
 
@@ -12,6 +12,7 @@
 
 - Node.js 22.18 以上と [Vite+](https://viteplus.dev/)（`vp`）
 - Turso CLI：`brew install tursodatabase/tap/turso`
+- [just](https://just.systems/)（一括起動に使う場合）：`brew install just`
 
 ```bash
 vp install
@@ -54,7 +55,13 @@ cp apps/api/.env.example apps/api/.env
 
 ### 4. 起動する
 
-API と画面を、それぞれ別のターミナルで起動する。
+`just` を使うと、ローカル DB の起動・マイグレーション・API・画面を 1 コマンドでまとめて起動できる（`Ctrl+C` で一括停止）。
+
+```bash
+just dev
+```
+
+個別のターミナルで起動する場合は以下を実行する。
 
 ```bash
 vp run api#dev   # API（http://localhost:8787）

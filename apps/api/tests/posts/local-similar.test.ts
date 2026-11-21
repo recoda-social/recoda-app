@@ -10,8 +10,8 @@ describe("isLocalDatabaseUrl", () => {
 
     expect(isLocalDatabaseUrl(undefined)).toBe(false);
     expect(isLocalDatabaseUrl("")).toBe(false);
-    expect(isLocalDatabaseUrl("libsql://otography-prod.turso.io")).toBe(false);
-    expect(isLocalDatabaseUrl("https://otography-staging.turso.io")).toBe(false);
+    expect(isLocalDatabaseUrl("libsql://recoda-prod.turso.io")).toBe(false);
+    expect(isLocalDatabaseUrl("https://recoda-staging.turso.io")).toBe(false);
   });
 });
 

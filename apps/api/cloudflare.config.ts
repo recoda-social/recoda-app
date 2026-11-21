@@ -4,7 +4,7 @@ import { bindings, defineConfig, triggers } from "cf/config";
 import * as entrypoint from "./src/index.ts" with { type: "cf-worker" };
 
 // Worker は本番の 1 つだけにし、ステージングはその Worker の Preview（名前は staging）として作る。
-// workers.dev の URL は <Worker 名>.otography.workers.dev、Preview は <Preview 名>-<Worker 名>.otography.workers.dev になる。
+// workers.dev の URL は <Worker 名>.recoda-social.workers.dev、Preview は <Preview 名>-<Worker 名>.recoda-social.workers.dev になる。
 const WORKER_NAME = "app";
 
 // シークレットの値は、ローカルでは .env に書き、デプロイ先ではシークレットとして登録する（.env.example を参照）。

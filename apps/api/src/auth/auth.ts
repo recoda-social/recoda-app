@@ -7,7 +7,7 @@ import { createPublicId } from "../lib/id.ts";
 import { toDisplayName } from "../users/display-name.ts";
 import { requireEnv } from "../lib/env.ts";
 
-const PRODUCTION_HOST = "app.otography.workers.dev";
+const PRODUCTION_HOST = "app.recoda-social.workers.dev";
 const PRODUCTION_URL = `https://${PRODUCTION_HOST}`;
 
 /** Google が発行したトークンとその期限を NULL にする。 */
@@ -26,7 +26,7 @@ export const auth = betterAuth({
   // アプリの URL は、リクエストのホスト名から決める。ホスト名が allowedHosts に無ければ fallback を使う。
   // 本番（app）、Preview（<Preview 名>-app）、ローカル（Vite の開発サーバー）の URL がそれぞれ違うため。
   baseURL: {
-    allowedHosts: [PRODUCTION_HOST, "*-app.otography.workers.dev", "localhost:3000"],
+    allowedHosts: [PRODUCTION_HOST, "*-app.recoda-social.workers.dev", "localhost:3000"],
     fallback: PRODUCTION_URL,
   },
   // Preview の URL は Preview ごとに変わるが、Google にはリダイレクト URI を完全一致で登録する必要がある。

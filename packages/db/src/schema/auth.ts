@@ -22,7 +22,7 @@ export const users = snakeCase.table(
     email: text().notNull().unique(),
     emailVerified: integer({ mode: "boolean" }).default(false).notNull(),
     // アイコンの URL。プロフィールと投稿に公開する。Google の写真は保存せず（apps/api/src/auth/auth.ts）、
-    // 今は公式アカウントの画像（/otography-icon.png）だけが入る
+    // 今は公式アカウントの画像（/recoda-icon.png）だけが入る
     image: text(),
     createdAt: timestamp().default(nowMs).notNull(),
     updatedAt: timestamp()
