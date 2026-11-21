@@ -17,20 +17,26 @@ export type FavoriteDecoration = {
   color: FavoriteColor | null;
 };
 
-export type ReplaceFavoriteSongInput = {
-  songId: string;
-  isrc: string;
-  comment: string | null;
-  emoji: string | null;
+type FavoriteDecorationInput = Omit<FavoriteDecoration, "color"> & {
   color?: FavoriteColor | null;
 };
 
-export type ReplaceFavoriteArtistInput = {
-  artistId: string;
-  comment: string | null;
-  emoji: string | null;
-  color?: FavoriteColor | null;
+export type ReplaceFavoriteSongInput = FavoriteDecorationInput & {
+  songId: string;
+  isrc: string;
 };
+
+export type ReplaceFavoriteArtistInput = FavoriteDecorationInput & {
+  artistId: string;
+};
+
+async function unwrapJson<T extends object>(res: { json(): Promise<T | { error: string }> }) {
+  const body = await res.json();
+  if ("error" in body) {
+    throw new Error(body.error);
+  }
+  return body;
+}
 
 export const profileQuery = (publicId: string) =>
   queryOptions({
@@ -64,30 +70,15 @@ export const authorPostsInfiniteQuery = (publicId: string) =>
   });
 
 export async function updateProfile(input: { name?: string; bio?: string }) {
-  const res = await client.api.me.$patch({ json: input });
-  const body = await res.json();
-  if ("error" in body) {
-    throw new Error(body.error);
-  }
-  return body;
+  return unwrapJson(await client.api.me.$patch({ json: input }));
 }
 
 export async function replaceFavoriteSongs(items: Array<ReplaceFavoriteSongInput>) {
-  const res = await client.api.me["favorite-songs"].$put({ json: { items } });
-  const body = await res.json();
-  if ("error" in body) {
-    throw new Error(body.error);
-  }
-  return body;
+  return unwrapJson(await client.api.me["favorite-songs"].$put({ json: { items } }));
 }
 
 export async function replaceFavoriteArtists(items: Array<ReplaceFavoriteArtistInput>) {
-  const res = await client.api.me["favorite-artists"].$put({ json: { items } });
-  const body = await res.json();
-  if ("error" in body) {
-    throw new Error(body.error);
-  }
-  return body;
+  return unwrapJson(await client.api.me["favorite-artists"].$put({ json: { items } }));
 }
 
 export async function deletePost(postId: string) {

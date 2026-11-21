@@ -27,7 +27,7 @@ export const bytes = customType<{ data: Uint8Array; driverData: Uint8Array }>({
 });
 
 /** IEEE 754 半精度（16bit）を number に戻す。 */
-const halfToNumber = (h: number): number => {
+export const halfToNumber = (h: number): number => {
   const sign = h & 0x80_00 ? -1 : 1;
   const exponent = (h >> 10) & 0x1f;
   const fraction = h & 0x03_ff;

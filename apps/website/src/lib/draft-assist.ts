@@ -1,4 +1,4 @@
-import type { InferRequestType } from "hono/client";
+import type { InferRequestType, InferResponseType } from "hono/client";
 import { client } from "#/lib/api";
 
 export type AssistPopupId =
@@ -30,16 +30,14 @@ export interface AssistMessageItem {
   text: string;
 }
 
-export interface DraftAssistRequest {
-  draftSessionId: string;
-  trackTitle: string;
-  draftText: string;
-}
+export type DraftAssistRequest = InferRequestType<
+  (typeof client.api)["draft-assist"]["$post"]
+>["json"];
 
-export interface DraftAssistResponse {
-  popupId: AssistPopupId | null;
-  modelVersion: string;
-}
+export type DraftAssistResponse = InferResponseType<
+  (typeof client.api)["draft-assist"]["$post"],
+  200
+>;
 
 export type DraftAssistBehaviorEvent = InferRequestType<
   (typeof client.api)["draft-assist"]["events"]["$post"]

@@ -1,3 +1,5 @@
+import { halfToNumber } from "db";
+
 /**
  * ベクトルとバイト列の変換。D1 と Turso の BLOB に入れるときに使う。
  */
@@ -30,19 +32,6 @@ const toHalf = (value: number) => {
   return sign | (e << 10) | (rounded >> 13);
 };
 
-const fromHalf = (h: number) => {
-  const sign = h & 0x80_00 ? -1 : 1;
-  const exponent = (h >> 10) & 0x1f;
-  const fraction = h & 0x03_ff;
-  if (exponent === 0) {
-    return sign * 2 ** -14 * (fraction / 1024);
-  }
-  if (exponent === 0x1f) {
-    return fraction ? Number.NaN : sign * Number.POSITIVE_INFINITY;
-  }
-  return sign * 2 ** (exponent - 15) * (1 + fraction / 1024);
-};
-
 /** ベクトルを半精度のバイト列（リトルエンディアン、2 バイト × 次元数）にする。 */
 export function encodeHalf(vector: ArrayLike<number>) {
   const bytes = new Uint8Array(vector.length * 2);
@@ -57,7 +46,7 @@ export function encodeHalf(vector: ArrayLike<number>) {
 export function decodeHalf(bytes: Uint8Array) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   return Float32Array.from({ length: Math.floor(bytes.byteLength / 2) }, (_, i) =>
-    fromHalf(view.getUint16(i * 2, true)),
+    halfToNumber(view.getUint16(i * 2, true)),
   );
 }
 
