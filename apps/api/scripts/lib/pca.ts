@@ -1,3 +1,5 @@
+import type { Transform as StoredTransform } from "../../src/embeddings/transform.ts";
+
 /**
  * 主成分分析（PCA）。n 本の D 次元ベクトルから、分散の大きい k 方向と、その方向の分散を求める。
  * D = 2048、k = 256 を想定し、共分散行列を作ってから、部分空間反復とヤコビ法で上位の固有ベクトルを求める。
@@ -175,7 +177,7 @@ export function topEigen(c: Float64Array, d: number, k: number, iterations = 20)
   return { values: values.slice(0, k), vectors: u };
 }
 
-export type Transform = { a: Float32Array; b: Float32Array };
+export type Transform = Omit<StoredTransform, "model">;
 
 /**
  * x の集まりから、射影だけの変換（A = Uᵀ）と、白色化の変換（A = (Λ + τI)^(-1/2) Uᵀ）を作る。b = −Aμ。

@@ -20,14 +20,23 @@ export async function getProfile({ db, publicId }: { db: Database; publicId: str
   return profile.data;
 }
 
-/** 内部 ID のユーザーのプロフィールを返す。お気に入りを変えた後に、変えた結果を返すために使う。 */
-export async function getProfileOfUser({ db, userId }: { db: Database; userId: string }) {
+/** 内部 ID のユーザーを取得する。DB に存在しない場合は UserQueryError を返す。 */
+export async function requireUserById({ db, userId }: { db: Database; userId: string }) {
   const user = await findUserById({ db, userId });
   if (user instanceof Error) {
     return user;
   }
   if (!user) {
     return new UserQueryError({ cause: new Error(`ユーザー ${userId} が DB にない`) });
+  }
+  return user;
+}
+
+/** 内部 ID のユーザーのプロフィールを返す。お気に入りを変えた後に、変えた結果を返すために使う。 */
+export async function getProfileOfUser({ db, userId }: { db: Database; userId: string }) {
+  const user = await requireUserById({ db, userId });
+  if (user instanceof Error) {
+    return user;
   }
   return getProfile({ db, publicId: user.publicId });
 }

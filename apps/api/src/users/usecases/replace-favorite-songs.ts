@@ -5,7 +5,7 @@ import { getOrCreateSong } from "../../songs/repository.ts";
 import { DuplicateFavoriteSongError } from "../errors.ts";
 import { replaceFavoriteSongs } from "../repository.ts";
 import type { replaceFavoriteSongsInput } from "../schemas.ts";
-import { decorationOf } from "./favorite-decoration.ts";
+import { decorationOf, findDuplicateByKey } from "./favorite-decoration.ts";
 import { getProfileOfUser } from "./get-profile.ts";
 
 /**
@@ -39,8 +39,7 @@ export async function replaceFavoriteSongsOfUser<FetchError extends Error>({
   }
 
   // 入力の ISRC が違っても、Apple が返した ISRC が同じなら同じ曲なので、確定した曲で重複を確かめる。
-  const seen = new Set<string>();
-  const duplicate = items.find((item) => seen.size === seen.add(item.songIsrc).size);
+  const duplicate = findDuplicateByKey(items, (item) => item.songIsrc);
   if (duplicate) {
     return new DuplicateFavoriteSongError({ isrc: duplicate.songIsrc });
   }

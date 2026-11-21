@@ -5,7 +5,7 @@ import type { Database } from "../../lib/db.ts";
 import { DuplicateFavoriteArtistError } from "../errors.ts";
 import { replaceFavoriteArtists } from "../repository.ts";
 import type { replaceFavoriteArtistsInput } from "../schemas.ts";
-import { decorationOf } from "./favorite-decoration.ts";
+import { decorationOf, findDuplicateByKey } from "./favorite-decoration.ts";
 import { getProfileOfUser } from "./get-profile.ts";
 
 /**
@@ -23,8 +23,7 @@ export async function replaceFavoriteArtistsOfUser<FetchError extends Error>({
   userId: string;
   input: z.output<typeof replaceFavoriteArtistsInput>;
 }) {
-  const seen = new Set<string>();
-  const duplicate = input.items.find((item) => seen.size === seen.add(item.artistId).size);
+  const duplicate = findDuplicateByKey(input.items, (item) => item.artistId);
   if (duplicate) {
     return new DuplicateFavoriteArtistError({ artistId: duplicate.artistId });
   }
