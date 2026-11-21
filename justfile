@@ -10,6 +10,13 @@ default:
 
 # ローカル DB → マイグレーション → API・フロントエンドを一括起動
 dev:
+    @just _dev "dev"
+
+# ローカル DB → マイグレーション → API・フロントエンドを一括起動（Vite を --host 付きで公開）
+dev-host:
+    @just _dev "dev:host"
+
+_dev web_script="dev":
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -87,8 +94,8 @@ dev:
     vp run api#dev &
     pids+=("$!")
 
-    echo "[web] フロントエンドを起動中 (http://localhost:3000)..."
-    vp run website#dev &
+    echo "[web] フロントエンドを起動中 (http://localhost:3000, {{web_script}})..."
+    vp run "website#{{web_script}}" &
     pids+=("$!")
 
     wait
