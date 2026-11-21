@@ -10,6 +10,11 @@ import { requireEnv } from "../lib/env.ts";
 const PRODUCTION_HOST = "app.recoda-social.workers.dev";
 const PRODUCTION_URL = `https://${PRODUCTION_HOST}`;
 
+const devAllowedHosts = (process.env.DEV_ALLOWED_HOST ?? "")
+  .split(",")
+  .map((host) => host.trim())
+  .filter(Boolean);
+
 /** Google が発行したトークンとその期限を NULL にする。 */
 const withoutOAuthTokens = <T extends object>(account: T) => ({
   ...account,
@@ -26,7 +31,12 @@ export const auth = betterAuth({
   // アプリの URL は、リクエストのホスト名から決める。ホスト名が allowedHosts に無ければ fallback を使う。
   // 本番（app）、Preview（<Preview 名>-app）、ローカル（Vite の開発サーバー）の URL がそれぞれ違うため。
   baseURL: {
-    allowedHosts: [PRODUCTION_HOST, "*-app.recoda-social.workers.dev", "localhost:3000"],
+    allowedHosts: [
+      PRODUCTION_HOST,
+      "*-app.recoda-social.workers.dev",
+      "localhost:3000",
+      ...devAllowedHosts,
+    ],
     fallback: PRODUCTION_URL,
   },
   // Preview の URL は Preview ごとに変わるが、Google にはリダイレクト URI を完全一致で登録する必要がある。
@@ -108,6 +118,9 @@ export const auth = betterAuth({
   advanced: {
     // Workers へのリクエストには X-Forwarded-For が付かないので、利用者の IP は CF-Connecting-IP から読む。
     ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] },
+    // Tailscale Serve 等のリバースプロキシ経由（DEV_ALLOWED_HOST 指定時）では、
+    // X-Forwarded-Proto: https を信頼して baseURL のプロトコルを https と判定させる。
+    trustedProxyHeaders: devAllowedHosts.length > 0,
   },
 });
 
