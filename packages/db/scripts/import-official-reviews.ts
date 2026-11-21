@@ -38,11 +38,11 @@ type ReviewData = {
 const OFFICIAL = {
   id: OFFICIAL_USER_ID,
   publicId: "otography",
-  name: "otography",
+  name: "Recoda",
   email: "official@otography.invalid",
-  bio: "otography の公式アカウントです。",
+  bio: "Recoda の公式アカウントです。",
   isAdmin: true,
-  image: "/otography-icon.png", // apps/website/public の画像。Worker の静的アセットとして配信する
+  image: "/recoda-icon.png", // apps/website/public の画像。Worker の静的アセットとして配信する
 };
 const SPREAD_MS = 90 * 24 * 60 * 60 * 1000;
 const CHUNK = 200;

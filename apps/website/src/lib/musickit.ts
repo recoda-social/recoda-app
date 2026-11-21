@@ -169,7 +169,7 @@ export function getMusicKit() {
     }
     const configured = await window.MusicKit.configure({
       developerToken: token,
-      app: { name: "otography", build: "0.0.0" },
+      app: { name: "Recoda", build: "0.0.0" },
     });
     loadedInstance = configured;
     return configured;

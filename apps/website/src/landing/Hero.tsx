@@ -419,7 +419,7 @@ export function Hero() {
           <BudouxText text="聴いた人の言葉をまとって、曲は次の誰かへ渡っていく。" />
         </p>
         <p {...props(styles.heroDescription)}>
-          <BudouxText text="otographyは、楽曲への短い感想を投稿し、誰かの音楽体験に触れられるプラットフォームです。" />
+          <BudouxText text="Recodaは、楽曲への短い感想を投稿し、誰かの音楽体験に触れられるプラットフォームです。" />
         </p>
         <div {...props(styles.heroActions)}>
           <StartButton style={styles.heroActionPrimaryLink} />

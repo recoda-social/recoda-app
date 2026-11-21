@@ -5,7 +5,7 @@
 ## 前提
 
 - 設計ドキュメントでは、デプロイを GitHub Actions が受け持つと決めている。
-- Worker の Preview は PR ごと（`pr-<PR番号>`）に作り、URL の解決と Google ログインは ADR 0008 の `allowedHosts`（`*-app.otography.workers.dev`）と `oAuthProxy` で対応する。
+- Worker の Preview は PR ごと（`pr-<PR番号>`）に作り、URL の解決と Google ログインは ADR 0008 の `allowedHosts`（`*-app.recoda-social.workers.dev`）と `oAuthProxy` で対応する。
 - 新しく作られる Preview にシークレットを自動継承するため、Cloudflare の Worker 設定（Previews Base）に staging 用のシークレットを登録しておく。
 - DB は staging の Turso と D1（`x-store-staging-01`）の 1 組を全 Preview で共有する。
 - `cf` は、CI では `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` で認証する。また、CI では、確認が必要な操作を中断し、終了コード 0 で終わる（Cloudflare の「Use cf in CI」）。
@@ -26,7 +26,7 @@
 ### 3. Preview を PR ごとに分けると、並行する PR が互いの環境を上書きしない
 
 - 単一の `staging` Preview を共有すると、複数のプルリクエストを同時に進めているときに、後から push した PR が別の PR の確認環境を上書きしてしまう。
-- Preview 名を `pr-<PR番号>` に分けることで、各 PR が独立した URL（`pr-<PR番号>-app.otography.workers.dev`）で確認できる。
+- Preview 名を `pr-<PR番号>` に分けることで、各 PR が独立した URL（`pr-<PR番号>-app.recoda-social.workers.dev`）で確認できる。
 
 ## 実装
 

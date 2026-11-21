@@ -18,5 +18,5 @@ const styles = create({
 });
 
 export function Logo() {
-  return <span {...props(styles.logo)}>otography</span>;
+  return <span {...props(styles.logo)}>Recoda</span>;
 }

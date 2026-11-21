@@ -23,8 +23,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const OFFICIAL_AUTHOR = {
   publicId: "otography",
-  name: "otography",
-  image: "/otography-icon.png",
+  name: "Recoda",
+  image: "/recoda-icon.png",
 } as const;
 
 // packages/db/data/official-reviews.json（staging に投入している公式アカウントの実データ）から抜粋。

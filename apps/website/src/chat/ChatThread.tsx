@@ -229,7 +229,7 @@ function AssistantSimilarReply({ postId, songTitle }: { postId: string; songTitl
     <article {...props(styles.turn, styles.turnAssistant, styles.turnAssistantEnter)}>
       <img
         ref={searchingNotes?.meta.registerTarget}
-        src="/otography-icon.png"
+        src="/recoda-icon.png"
         alt=""
         aria-hidden="true"
         width={32}
@@ -288,7 +288,7 @@ function AssistantErrorReply({ message }: { message: string }) {
   return (
     <article {...props(styles.turn, styles.turnAssistant, styles.turnAssistantEnter)}>
       <img
-        src="/otography-icon.png"
+        src="/recoda-icon.png"
         alt=""
         aria-hidden="true"
         width={32}
