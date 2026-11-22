@@ -1,4 +1,5 @@
 import { postEmbeddings } from "db";
+import { ne } from "drizzle-orm";
 import type { Database } from "../../lib/db.ts";
 import { EmbeddingSaveError } from "../errors.ts";
 import { project } from "../transform.ts";
@@ -23,7 +24,18 @@ export async function saveProjected({
     return db
       .insert(postEmbeddings)
       .values({ postId, embedding: z, norm, model: transform.model })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: postEmbeddings.postId,
+        set: {
+          embedding: z,
+          norm,
+          model: transform.model,
+          pnormA: null,
+          pnormB: null,
+          updatedAt: new Date(),
+        },
+        setWhere: ne(postEmbeddings.model, transform.model),
+      });
   });
   if (first === undefined) {
     return 0;

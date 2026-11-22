@@ -57,8 +57,9 @@ if (stored instanceof Error) {
   fail(stored);
 }
 
+const model = process.env.EMBEDDING_MODEL ?? EMBEDDING_MODEL;
 const missing = visible.filter((post) => !stored.has(post.id)).slice(0, MAX_POSTS);
-const transform = await loadTransform({ db, model: EMBEDDING_MODEL });
+const transform = await loadTransform({ db, model });
 if (transform instanceof Error) {
   fail(transform);
 }
