@@ -255,18 +255,20 @@ const styles = create({
   },
   tabIndicator: {
     position: "absolute",
+    right: 0,
     bottom: -1,
-    left: "var(--active-tab-left)",
-    width: "var(--active-tab-width)",
+    left: 0,
     height: 2,
+    pointerEvents: "none",
     backgroundColor: t.primary,
-    borderRadius: 9999,
+    clipPath:
+      "inset(0 calc(100% - var(--active-tab-left) - var(--active-tab-width)) 0 var(--active-tab-left) round 9999px)",
     transitionTimingFunction: motion.easeOut,
     transitionDuration: {
       default: "200ms",
       [chatMedia.reducedMotion]: "0ms",
     },
-    transitionProperty: "left, width",
+    transitionProperty: "clip-path",
   },
   tabPanel: {
     outline: "none",

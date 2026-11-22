@@ -47,8 +47,8 @@ const styles = create({
       },
     },
     transition: {
-      default: `transform 160ms ${motion.easeOut}, box-shadow 160ms ${motion.easeOut}`,
-      "@media (prefers-reduced-motion: reduce)": "box-shadow 120ms ease",
+      default: `transform 160ms ${motion.easeOut}`,
+      "@media (prefers-reduced-motion: reduce)": "none",
     },
   },
 });
