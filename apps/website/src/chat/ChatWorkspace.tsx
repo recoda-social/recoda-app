@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/react/avatar";
 import { useEffect, useRef } from "react";
 import type { Me } from "#/lib/auth";
+import { motion } from "#/motion.stylex";
 import { MiniPlayerBar } from "#/songs/MiniPlayerBar";
 import { usePreviewPlayer } from "#/songs/preview-player";
 import { ChatComposer } from "./ChatComposer";
@@ -238,7 +239,8 @@ function ChatShell({ user }: { user: Me }) {
             </ComposerDock.Panel>
 
             <ComposerDock.Panel mode="log">
-              <ListeningComposer.SearchCombobox />
+              <ListeningComposer.SearchPopover />
+              <ListeningComposer.Input />
             </ComposerDock.Panel>
           </ComposerDock.Surface>
         </ComposerDock.Root>
@@ -315,7 +317,7 @@ const styles = create({
       },
     },
     borderRadius: 9999,
-    transition: "background-color 150ms ease",
+    transition: `background-color 150ms ${motion.easeOut}`,
   },
   avatarSm: {
     display: "inline-flex",

@@ -262,15 +262,7 @@ export const favoriteStyles = create({
     position: "fixed",
     inset: 0,
     backgroundColor: "rgba(0, 0, 0, 0.42)",
-    opacity: {
-      "@starting-style": 0,
-      default: 1,
-    },
     backdropFilter: "blur(2px)",
-    transition: {
-      default: `opacity 200ms ${motion.easeOut}`,
-      [chatMedia.reducedMotion]: "opacity 150ms ease",
-    },
   },
   dialog: {
     width: "min(520px, calc(100vw - 24px))",
@@ -284,22 +276,6 @@ export const favoriteStyles = create({
     borderWidth: 1,
     borderRadius: 18,
     boxShadow: t.shadow,
-    opacity: {
-      "@starting-style": 0,
-      default: 1,
-    },
-    transform: {
-      "@starting-style": {
-        default: "scale(0.96)",
-        [chatMedia.reducedMotion]: "none",
-      },
-      default: "scale(1)",
-    },
-    transformOrigin: "center",
-    transition: {
-      default: `opacity 200ms ${motion.easeOut}, transform 200ms ${motion.easeOut}`,
-      [chatMedia.reducedMotion]: "opacity 150ms ease",
-    },
   },
   alertDialog: {
     width: "min(420px, calc(100vw - 24px))",
@@ -311,22 +287,6 @@ export const favoriteStyles = create({
     borderWidth: 1,
     borderRadius: 18,
     boxShadow: t.shadow,
-    opacity: {
-      "@starting-style": 0,
-      default: 1,
-    },
-    transform: {
-      "@starting-style": {
-        default: "scale(0.96)",
-        [chatMedia.reducedMotion]: "none",
-      },
-      default: "scale(1)",
-    },
-    transformOrigin: "center",
-    transition: {
-      default: `opacity 200ms ${motion.easeOut}, transform 200ms ${motion.easeOut}`,
-      [chatMedia.reducedMotion]: "opacity 150ms ease",
-    },
   },
   dialogHeader: {
     display: "flex",

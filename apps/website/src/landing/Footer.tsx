@@ -1,4 +1,5 @@
 import { create, props } from "@stylexjs/stylex";
+import { motion } from "#/motion.stylex";
 import { Logo } from "./Logo";
 import { fontTokens, landingMedia } from "./tokens.stylex";
 
@@ -48,7 +49,7 @@ const styles = create({
       default: 1,
       ":active": 0.65,
     },
-    transition: "color 120ms ease, opacity 120ms ease",
+    transition: `color 120ms ${motion.easeOut}, opacity 120ms ${motion.easeOut}`,
   },
   socialLinks: {
     display: "flex",

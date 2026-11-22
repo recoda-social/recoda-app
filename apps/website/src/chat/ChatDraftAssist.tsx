@@ -8,7 +8,7 @@ import { CloseIcon } from "./icons";
 import { chatMedia, chatPopover, chatTokens as t } from "./tokens.stylex";
 
 const DISMISS_DISTANCE_PX = 36;
-const DISMISS_VELOCITY_PX_PER_MS = 0.11;
+const DISMISS_VELOCITY_PX_PER_MS = 0.45;
 const RUBBER_BAND_FACTOR = 0.2;
 
 const resetCardInlineStyle = (el: HTMLDivElement) => {
@@ -38,10 +38,6 @@ export function ChatDraftAssist() {
     if (!shouldEnter) {
       return;
     }
-    const el = cardRef.current;
-    if (el) {
-      resetCardInlineStyle(el);
-    }
     const rafId = requestAnimationFrame(() => setEntered(true));
     return () => {
       cancelAnimationFrame(rafId);
@@ -56,7 +52,7 @@ export function ChatDraftAssist() {
   const isShown = visible && entered;
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || dragRef.current) {
+    if (event.button !== 0) {
       return;
     }
     // 閉じるボタンのタップ操作はドラッグとして奪わない。
@@ -111,7 +107,6 @@ export function ChatDraftAssist() {
       el.releasePointerCapture(event.pointerId);
     }
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const deltaY = event.clientY - drag.startY;
     const shouldDismiss =
       !cancelled &&
@@ -119,31 +114,19 @@ export function ChatDraftAssist() {
         (deltaY > 12 && drag.velocityY >= DISMISS_VELOCITY_PX_PER_MS));
 
     if (shouldDismiss) {
-      el.style.transition = reducedMotion
-        ? "opacity 120ms ease"
-        : `transform 160ms ${motion.easeOut}, opacity 160ms ${motion.easeOut}`;
-      if (!reducedMotion) {
-        const exitY = Math.max(deltaY + 24, DISMISS_DISTANCE_PX * 1.5);
-        el.style.transform = `translateY(${exitY}px)`;
-      }
-      el.style.opacity = "0";
+      resetCardInlineStyle(el);
       actions.dismiss("swipe");
       return;
     }
 
-    el.style.transition = reducedMotion
-      ? "opacity 120ms ease"
-      : `transform 160ms ${motion.easeOut}, opacity 160ms ${motion.easeOut}`;
+    el.style.transition = `transform 160ms ${motion.easeOut}, opacity 160ms ${motion.easeOut}`;
     el.style.transform = "translateY(0px)";
     el.style.opacity = "1";
-    window.setTimeout(
-      () => {
-        if (cardRef.current === el) {
-          resetCardInlineStyle(el);
-        }
-      },
-      reducedMotion ? 130 : 170,
-    );
+    window.setTimeout(() => {
+      if (cardRef.current === el) {
+        resetCardInlineStyle(el);
+      }
+    }, 170);
   };
 
   return (
