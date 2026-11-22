@@ -16,6 +16,7 @@ catalog:
   "@stylexjs/eslint-plugin": ^0.19.2
   "@stylexjs/stylex": ^0.19.2
   "@stylexjs/unplugin": ^0.19.2
+  "@testing-library/react": ^16.3.3
   "@types/node": ^24
   "@ui-sdk/core": 0.1.0-beta.10
   "@ui-sdk/react": 0.1.0-beta.10
@@ -23,6 +24,7 @@ catalog:
   drizzle-kit: 1.0.0-rc.5
   drizzle-orm: 1.0.0-rc.5
   errore: ^0.14.1
+  jsdom: ^31.0.1
   knip: ^6.45.1
   typescript: ^7.0.2
   vite: npm:@voidzero-dev/vite-plus-core@8.3.8000

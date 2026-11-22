@@ -1,5 +1,6 @@
 import { props } from "@stylexjs/stylex";
 import type { StyleXStyles } from "@stylexjs/stylex";
+import { Button } from "@ui-sdk/react/button";
 import { MusicNoteIcon, PlusIcon } from "#/chat/icons";
 import { artworkUrl, searchSongs } from "#/lib/musickit";
 import type { AppleSong } from "#/lib/musickit";
@@ -61,7 +62,7 @@ function AddFavoriteSongBody() {
               const disabled = !isrc || alreadyAdded;
               return (
                 <li key={song.id} {...props(styles.resultRow)}>
-                  <button
+                  <Button
                     type="button"
                     disabled={disabled}
                     onClick={() => searchActions.select(song)}
@@ -77,7 +78,7 @@ function AddFavoriteSongBody() {
                     ) : !isrc ? (
                       <span {...props(styles.badge)}>選択不可</span>
                     ) : null}
-                  </button>
+                  </Button>
                   <PreviewToggle song={song} title={song.attributes.name} style={styles.iconBtn} />
                 </li>
               );

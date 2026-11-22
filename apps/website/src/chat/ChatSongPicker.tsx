@@ -86,7 +86,7 @@ export function ChatSongPicker() {
             const { name, artistName, artwork, isrc } = song.attributes;
             const disabled = !isrc;
             return (
-              <button
+              <Button
                 key={song.id}
                 type="button"
                 disabled={disabled}
@@ -119,7 +119,7 @@ export function ChatSongPicker() {
                   <span {...props(styles.triggerItemSub)}>{artistName}</span>
                 </span>
                 {disabled ? <span {...props(styles.triggerBadge)}>選択不可</span> : null}
-              </button>
+              </Button>
             );
           })}
         </div>

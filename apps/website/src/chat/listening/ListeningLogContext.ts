@@ -20,7 +20,6 @@ type ListeningLogState = {
   searchQuery: string;
   searchResults: Array<AppleSong>;
   searchLoading: boolean;
-  highlightedIndex: number;
   isSaving: boolean;
 };
 
@@ -33,8 +32,6 @@ type ListeningLogActions = {
   setShelfExpanded: (expanded: boolean) => void;
   toggleShelfExpanded: () => void;
   setSearchQuery: (query: string) => void;
-  setHighlightedIndex: (index: number) => void;
-  moveHighlight: (delta: -1 | 1) => void;
   addSong: (song: AppleSong) => void;
   removeLog: (logId: string) => void;
   writeReviewForLog: (log: ListeningLogView) => void;
