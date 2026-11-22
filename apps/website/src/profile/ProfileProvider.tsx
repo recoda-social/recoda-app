@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { meQuery } from "#/lib/auth";
 import type { Me } from "#/lib/auth";
-import { ProfileToasts } from "./ProfileToasts";
+import { AppToasts } from "#/shell/AppToasts";
 import { catalogSongsQuery } from "#/lib/musickit";
 import type { AppleArtist, AppleSong } from "#/lib/musickit";
 import {
@@ -367,7 +367,7 @@ export function ProfileProvider({ user, children }: { user: Me; children: ReactN
       }}
     >
       {children}
-      <ProfileToasts toaster={toaster} />
+      <AppToasts toaster={toaster} side="bottom" align="end" />
     </ProfileContext>
   );
 }
