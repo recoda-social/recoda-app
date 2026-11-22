@@ -37,7 +37,8 @@ export const EMBEDDING_DIMENSIONS = 256;
 export const EMBEDDING_INPUT_DIMENSIONS = 2048;
 /**
  * post_embeddings.model に入れる値。埋め込みのモデルと、x を z に落とす変換の版を表す。
- * embedding_transforms の行の model と同じ値にする（plans/007-tag-detail-disentangle-plan.md）。
+ * embedding_transforms の行の model と同じ値にする。
+ * disentangle256-v1 は Cov-Ortho（文字数除去）＋ノイズ除去済み details との強収縮 rCCA（plans/007-tag-detail-disentangle-plan.md）。
  */
 export const EMBEDDING_MODEL = "plamo-1b:disentangle256-v1";
 

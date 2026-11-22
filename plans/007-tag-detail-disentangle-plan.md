@@ -108,7 +108,8 @@ $$\mathcal{L} = \mathcal{L}_{\text{rank}} + \beta \, \mathcal{L}_{\text{disentan
 ### 最終採用と本番反映手順
 
 - **採用モデル**: `plamo-1b:disentangle256-v1`（全 3,678 件で学習した `rcca_reg8` を単一アフィン変換 `z = Ax + b` へ合成、推論コード・Turso スキーマ変更ゼロ）
+  - ※本モデルが行う分離（Disentanglement）は、**「文量・表層ノイズ（曲名・アーティスト名・挨拶等）と純粋な体験・感性の中身の分離（`Cov-Ortho` ＋ ノイズ除去済み `details` との強収縮 `rCCA`）」および「出力 256 軸同士の無相関化」** であり、当初案の「5 スロットを明示的な別ブロックへ分割する方式」は体験×感情の微細な掛け算を損なうため不採用とした。
 - **生成＆登録コマンド**:
   1. バイナリ生成：`apps/api/scripts/disentangle-lab/export_production_transform.py` → `out/plamo-1b-disentangle256-v1.bin`（2,098,176 bytes）
   2. Turso 登録：`vpx apps/api/scripts/register-transform.ts apps/api/scripts/disentangle-lab/out/plamo-1b-disentangle256-v1.bin plamo-1b:disentangle256-v1`
-  3. 再埋め込み＆切替：`reembed-posts.ts` で新モデルの 256 次元 `z` を生成 → `packages/db/src/constants.ts` の `EMBEDDING_MODEL` を `plamo-1b:disentangle256-v1` へ切替。
+  3. 再射影＆切替：`EMBEDDING_MODEL=plamo-1b:disentangle256-v1 vpx apps/api/scripts/embed-posts.ts` で新モデルの 256 次元 `z` を生成 → `packages/db/src/constants.ts` の `EMBEDDING_MODEL` を `plamo-1b:disentangle256-v1` へ切替。
