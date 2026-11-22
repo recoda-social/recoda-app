@@ -1,4 +1,5 @@
 import { create, props } from "@stylexjs/stylex";
+import { motion } from "#/motion.stylex";
 import { BudouxText } from "./BudouxText";
 import { Avatar } from "./Avatar";
 import { fontTokens, landingMedia } from "./tokens.stylex";
@@ -73,7 +74,7 @@ const styles = create({
       default: 1,
       ":active": 0.65,
     },
-    transition: "color 120ms ease, opacity 120ms ease",
+    transition: `color 120ms ${motion.easeOut}, opacity 120ms ${motion.easeOut}`,
   },
   discoveryGrid: {
     display: "grid",
@@ -198,11 +199,7 @@ function DiscoveryCard({
 }: (typeof discoveryItems)[number]) {
   return (
     <article {...props(styles.discoveryCard)}>
-      <TrackArt.Labeled
-        variant={artVariant}
-        style={styles.discoveryArt}
-        label={`${title} のジャケット`}
-      />
+      <TrackArt variant={artVariant} style={styles.discoveryArt} label={`${title} のジャケット`} />
       <h3 {...props(styles.discoveryCardTitle)}>{title}</h3>
       <p {...props(styles.discoveryCardArtist)}>{artist}</p>
       <div {...props(styles.discoveryMeta)}>

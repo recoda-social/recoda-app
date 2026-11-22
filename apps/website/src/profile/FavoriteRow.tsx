@@ -9,7 +9,6 @@ import {
   AlertDialogTrigger,
 } from "@ui-sdk/react/alert-dialog";
 import { Button } from "@ui-sdk/react/button";
-import { createContext, use } from "react";
 import type { ReactNode } from "react";
 import { artworkUrl } from "#/lib/musickit";
 import type { FavoriteDecoration } from "#/lib/profile";
@@ -17,106 +16,36 @@ import { favoriteAccentStyles } from "./favorite-colors";
 import { favoriteStyles as styles } from "./favorite-styles";
 import { ChevronDownIcon, ChevronUpIcon, TrashIcon } from "./icons";
 
-type FavoriteRowContextValue = {
-  state: {
-    index: number;
-    total: number;
-    saving: boolean;
-  };
-  actions: {
-    move: (direction: -1 | 1) => void;
-    remove: () => Promise<void>;
-  };
-  meta: {
-    label: string;
-    noun: string;
-  };
-};
-
-const FavoriteRowContext = createContext<FavoriteRowContextValue | null>(null);
-
-function useFavoriteRow() {
-  const value = use(FavoriteRowContext);
-  if (!value) {
-    throw new Error("FavoriteRow の部品は FavoriteRow.Root の中で使う");
-  }
-  return value;
-}
-
-function Root({
-  color,
-  index,
-  total,
-  saving,
-  label,
-  noun,
-  onMove,
-  onRemove,
-  children,
-}: {
-  color: FavoriteDecoration["color"];
-  index: number;
-  total: number;
-  saving: boolean;
-  label: string;
-  noun: string;
-  onMove: (direction: -1 | 1) => void;
-  onRemove: () => Promise<void>;
-  children: ReactNode;
-}) {
+function Root({ color, children }: { color: FavoriteDecoration["color"]; children: ReactNode }) {
   const accentStyle = color ? favoriteAccentStyles[color] : null;
-  return (
-    <FavoriteRowContext
-      value={{
-        state: { index, total, saving },
-        actions: { move: onMove, remove: onRemove },
-        meta: { label, noun },
-      }}
-    >
-      <li {...props(styles.card, accentStyle)}>{children}</li>
-    </FavoriteRowContext>
-  );
+  return <li {...props(styles.card, accentStyle)}>{children}</li>;
 }
 
 function Main({ children }: { children: ReactNode }) {
   return <div {...props(styles.cardMain)}>{children}</div>;
 }
 
-function Rank() {
-  const { state } = useFavoriteRow();
+function Rank({ index }: { index: number }) {
   return (
-    <span {...props(styles.rank)} aria-label={`${state.index + 1} 番目`}>
-      {String(state.index + 1).padStart(2, "0")}
+    <span {...props(styles.rank)} aria-label={`${index + 1} 番目`}>
+      {String(index + 1).padStart(2, "0")}
     </span>
   );
 }
 
-type ArtProps = {
+/** ジャケット画像（なければ fallback）と絵文字バッジ。shape で角丸の形を切り替える。 */
+function Art({
+  src,
+  fallback,
+  emoji,
+  shape = "square",
+}: {
   src: string | null | undefined;
   fallback: ReactNode;
   emoji: string | null;
-};
-
-function SquareArt({ src, fallback, emoji }: ArtProps) {
-  return (
-    <div {...props(styles.artWrap)}>
-      {src ? (
-        <img src={artworkUrl(src, 112)} alt="" width={52} height={52} {...props(styles.cardArt)} />
-      ) : (
-        <div {...props(styles.cardArt, styles.artFallback)} aria-hidden="true">
-          {fallback}
-        </div>
-      )}
-      {emoji ? (
-        <span {...props(styles.emojiBadge)} aria-hidden="true">
-          {emoji}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-function RoundArt({ src, fallback, emoji }: ArtProps) {
+  shape?: "square" | "round";
+}) {
+  const round = shape === "round";
   return (
     <div {...props(styles.artWrap)}>
       {src ? (
@@ -125,15 +54,18 @@ function RoundArt({ src, fallback, emoji }: ArtProps) {
           alt=""
           width={52}
           height={52}
-          {...props(styles.cardArt, styles.roundCardArt)}
+          {...props(styles.cardArt, round && styles.roundCardArt)}
         />
       ) : (
-        <div {...props(styles.cardArt, styles.artFallback, styles.roundCardArt)} aria-hidden="true">
+        <div
+          {...props(styles.cardArt, styles.artFallback, round && styles.roundCardArt)}
+          aria-hidden="true"
+        >
           {fallback}
         </div>
       )}
       {emoji ? (
-        <span {...props(styles.emojiBadge, styles.roundEmojiBadge)} aria-hidden="true">
+        <span {...props(styles.emojiBadge, round && styles.roundEmojiBadge)} aria-hidden="true">
           {emoji}
         </span>
       ) : null}
@@ -149,24 +81,35 @@ function Actions({ children }: { children: ReactNode }) {
   return <div {...props(styles.rowActions)}>{children}</div>;
 }
 
-function MoveButtons() {
-  const { state, actions, meta } = useFavoriteRow();
+function MoveButtons({
+  label,
+  index,
+  total,
+  saving,
+  onMove,
+}: {
+  label: string;
+  index: number;
+  total: number;
+  saving: boolean;
+  onMove: (direction: -1 | 1) => void;
+}) {
   return (
     <>
       <Button
         type="button"
-        disabled={state.index === 0 || state.saving}
-        aria-label={`「${meta.label}」を上に移動`}
-        onClick={() => actions.move(-1)}
+        disabled={index === 0 || saving}
+        aria-label={`「${label}」を上に移動`}
+        onClick={() => onMove(-1)}
         {...props(styles.iconBtn)}
       >
         <ChevronUpIcon />
       </Button>
       <Button
         type="button"
-        disabled={state.index === state.total - 1 || state.saving}
-        aria-label={`「${meta.label}」を下に移動`}
-        onClick={() => actions.move(1)}
+        disabled={index === total - 1 || saving}
+        aria-label={`「${label}」を下に移動`}
+        onClick={() => onMove(1)}
         {...props(styles.iconBtn)}
       >
         <ChevronDownIcon />
@@ -175,31 +118,39 @@ function MoveButtons() {
   );
 }
 
-function RemoveDialog() {
-  const { state, actions, meta } = useFavoriteRow();
+/** noun は「好きな曲」「好きなアーティスト」のような一覧の呼び名。 */
+function RemoveDialog({
+  label,
+  noun,
+  saving,
+  onRemove,
+}: {
+  label: string;
+  noun: string;
+  saving: boolean;
+  onRemove: () => Promise<void>;
+}) {
   return (
-    <AlertDialog pendingAnnouncement={`${meta.noun}から削除しています`}>
+    <AlertDialog pendingAnnouncement={`${noun}から削除しています`}>
       <AlertDialogTrigger
-        disabled={state.saving}
-        aria-label={`「${meta.label}」を${meta.noun}から削除`}
+        disabled={saving}
+        aria-label={`「${label}」を${noun}から削除`}
         {...props(styles.deleteBtn)}
       >
         <TrashIcon />
       </AlertDialogTrigger>
       <AlertDialogBackdrop {...props(styles.backdrop)} />
       <AlertDialogContent {...props(styles.alertDialog)}>
-        <AlertDialogTitle {...props(styles.dialogTitle)}>
-          {meta.noun}から外しますか？
-        </AlertDialogTitle>
+        <AlertDialogTitle {...props(styles.dialogTitle)}>{noun}から外しますか？</AlertDialogTitle>
         <AlertDialogDescription {...props(styles.dialogDesc)}>
-          「{meta.label}」を{meta.noun}リストから削除します。
+          「{label}」を{noun}リストから削除します。
         </AlertDialogDescription>
         <div {...props(styles.dialogFooter)}>
           <AlertDialogClose {...props(styles.secondaryBtn)}>キャンセル</AlertDialogClose>
           <AlertDialogClose
             value="confirm"
-            data-agent-confirm={`「${meta.label}」を${meta.noun}から削除します`}
-            action={actions.remove}
+            data-agent-confirm={`「${label}」を${noun}から削除します`}
+            action={onRemove}
             {...props(styles.dangerBtn)}
           >
             リストから外す
@@ -214,13 +165,12 @@ function Comment({ children }: { children: string | null }) {
   return children ? <p {...props(styles.comment)}>{children}</p> : null;
 }
 
-/** お気に入り 1 件分の行。Root が共有コンテキストを提供し、内部の部品を組み合わせる。 */
+/** お気に入り 1 件分の行。Root の中に Main / Comment を並べ、Main の中に部品を組み合わせる。 */
 export const FavoriteRow = {
   Root,
   Main,
   Rank,
-  SquareArt,
-  RoundArt,
+  Art,
   Meta,
   Actions,
   MoveButtons,

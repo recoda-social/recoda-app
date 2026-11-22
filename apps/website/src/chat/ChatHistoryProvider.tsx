@@ -8,8 +8,6 @@ import { useMediaQuery } from "#/lib/use-media-query";
 import { ChatHistoryContext } from "./ChatHistoryContext";
 import { groupPostsByDate } from "./history-groups";
 
-const EMPTY_META: Record<string, never> = {};
-
 export function ChatHistoryProvider({
   publicId,
   children,
@@ -72,7 +70,6 @@ export function ChatHistoryProvider({
           toggleDesktop: () => setDesktopOpen((prev) => !prev),
           setMobileOpen,
         },
-        meta: EMPTY_META,
       }}
     >
       {children}

@@ -1,11 +1,12 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
+import { createToaster } from "@ui-sdk/react/toast";
 import { FAVORITE_COMMENT_MAX, FAVORITE_LIMIT, USER_BIO_MAX, USER_NAME_MAX } from "db/constants";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { meQuery } from "#/lib/auth";
 import type { Me } from "#/lib/auth";
-import { AppToasts, useAppToast } from "#/shell/AppToasts";
+import { ProfileToasts } from "./ProfileToasts";
 import { catalogSongsQuery } from "#/lib/musickit";
 import type { AppleArtist, AppleSong } from "#/lib/musickit";
 import {
@@ -60,11 +61,13 @@ function moveItem<T>(items: Array<T>, index: number, direction: -1 | 1): Array<T
   return next;
 }
 
-function ProfileProviderContent({ user, children }: { user: Me; children: ReactNode }) {
+export function ProfileProvider({ user, children }: { user: Me; children: ReactNode }) {
   const queryClient = useQueryClient();
-  const { actions: toaster } = useAppToast();
+  const [toaster] = useState(() => createToaster({ duration: 4000 }));
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [likingPostId, setLikingPostId] = useState<string | null>(null);
+
+  useEffect(() => () => toaster.dismiss(), [toaster]);
 
   const profileOptions = profileQuery(user.publicId);
   const postsOptions = authorPostsInfiniteQuery(user.publicId);
@@ -364,14 +367,7 @@ function ProfileProviderContent({ user, children }: { user: Me; children: ReactN
       }}
     >
       {children}
+      <ProfileToasts toaster={toaster} />
     </ProfileContext>
-  );
-}
-
-export function ProfileProvider({ user, children }: { user: Me; children: ReactNode }) {
-  return (
-    <AppToasts.Provider>
-      <ProfileProviderContent user={user}>{children}</ProfileProviderContent>
-    </AppToasts.Provider>
   );
 }

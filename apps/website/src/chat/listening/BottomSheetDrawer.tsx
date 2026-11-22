@@ -13,18 +13,10 @@ import { motion } from "#/motion.stylex";
 import { chatTokens as t } from "../tokens.stylex";
 
 type BottomSheetContextValue = {
-  state: {
-    open: boolean;
-  };
-  actions: {
-    registerBackdrop: (el: HTMLDivElement | null) => void;
-    registerContent: (el: HTMLDivElement | null) => void;
-    cancelOpenAnimations: () => void;
-  };
-  meta: Record<string, never>;
+  registerBackdrop: (el: HTMLDivElement | null) => void;
+  registerContent: (el: HTMLDivElement | null) => void;
+  cancelOpenAnimations: () => void;
 };
-
-const EMPTY_META: Record<string, never> = {};
 
 const BottomSheetContext = createContext<BottomSheetContextValue | null>(null);
 
@@ -106,13 +98,7 @@ function Root({
   }, [open]);
 
   return (
-    <BottomSheetContext
-      value={{
-        state: { open },
-        actions: { registerBackdrop, registerContent, cancelOpenAnimations },
-        meta: EMPTY_META,
-      }}
-    >
+    <BottomSheetContext value={{ registerBackdrop, registerContent, cancelOpenAnimations }}>
       <Drawer side="bottom" open={open} onOpenChange={onOpenChange}>
         {children}
       </Drawer>
@@ -121,8 +107,7 @@ function Root({
 }
 
 function Content({ children }: { children: ReactNode }) {
-  const { actions } = useBottomSheet();
-  const { registerBackdrop, registerContent, cancelOpenAnimations } = actions;
+  const { registerBackdrop, registerContent, cancelOpenAnimations } = useBottomSheet();
 
   return (
     <>

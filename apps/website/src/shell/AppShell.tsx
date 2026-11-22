@@ -2,7 +2,6 @@ import { create, props } from "@stylexjs/stylex";
 import type { StyleXStyles } from "@stylexjs/stylex";
 import { Button } from "@ui-sdk/react/button";
 import type { ReactNode } from "react";
-import { useAuth } from "#/auth/AuthContext";
 import { chatMedia, chatTokens as t } from "#/chat/tokens.stylex";
 import { motion } from "#/motion.stylex";
 
@@ -28,10 +27,9 @@ function BrandName({ style }: { style?: StyleXStyles }) {
   return <span {...props(styles.brandName, style)}>Recoda</span>;
 }
 
-function SignOutButton() {
-  const { actions } = useAuth();
+function SignOutButton({ onClick }: { onClick: () => void }) {
   return (
-    <Button type="button" onClick={() => void actions.signOut()} {...props(styles.signoutBtn)}>
+    <Button type="button" onClick={onClick} {...props(styles.signoutBtn)}>
       ログアウト
     </Button>
   );

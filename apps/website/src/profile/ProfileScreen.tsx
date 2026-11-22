@@ -1,10 +1,13 @@
 import { create, props as stylexProps } from "@stylexjs/stylex";
-import { Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@ui-sdk/react/button";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { Tabs, TabsIndicator, TabsList, TabsPanel, TabsTab } from "@ui-sdk/react/tabs";
 import { chatMedia, chatTokens as t } from "#/chat/tokens.stylex";
+import { authClient } from "#/lib/auth-client";
+import { meQuery } from "#/lib/auth";
 import type { Me } from "#/lib/auth";
 import { motion } from "#/motion.stylex";
 import { AppShell } from "#/shell/AppShell";
@@ -18,7 +21,6 @@ import { useProfile } from "./ProfileContext";
 import { ProfileHero } from "./ProfileHero";
 import { ProfilePostsPanel } from "./ProfilePostsPanel";
 import { ProfileProvider } from "./ProfileProvider";
-import { AppToasts } from "#/shell/AppToasts";
 
 function ProfileTab({ value, children }: { value: string; children: ReactNode }) {
   return (
@@ -39,6 +41,22 @@ function ProfileTab({ value, children }: { value: string; children: ReactNode })
 
 function ProfileWorkspaceContent() {
   const { state } = useProfile();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const player = usePreviewPlayer();
+  const { preloadAppleMusic } = player.actions;
+
+  useEffect(() => {
+    preloadAppleMusic();
+  }, [preloadAppleMusic]);
+
+  const handleSignOut = () => {
+    player.actions.close();
+    void authClient.signOut().then(async () => {
+      await queryClient.invalidateQueries({ queryKey: meQuery.queryKey });
+      await navigate({ to: "/" });
+    });
+  };
 
   return (
     <div {...stylexProps(styles.shell)}>
@@ -55,7 +73,7 @@ function ProfileWorkspaceContent() {
             </Link>
           </div>
 
-          <AppShell.SignOutButton />
+          <AppShell.SignOutButton onClick={handleSignOut} />
         </AppShell.Topbar>
 
         <MiniPlayerBar />
@@ -92,19 +110,11 @@ function ProfileWorkspaceContent() {
           </Tabs>
         </div>
       </main>
-
-      <AppToasts.Viewport side="bottom" align="end" />
     </div>
   );
 }
 
 export function ProfileScreen({ user }: { user: Me }) {
-  const { preloadAppleMusic } = usePreviewPlayer().actions;
-
-  useEffect(() => {
-    preloadAppleMusic();
-  }, [preloadAppleMusic]);
-
   return (
     <ProfileProvider user={user}>
       <ProfileWorkspaceContent />
@@ -154,17 +164,6 @@ const styles = create({
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 8,
-    transform: {
-      default: null,
-      ":active": {
-        default: "scale(0.97)",
-        [chatMedia.reducedMotion]: "none",
-      },
-    },
-    transition: {
-      default: `transform 160ms ${motion.easeOut}, background-color 150ms ease`,
-      [chatMedia.reducedMotion]: "background-color 120ms ease",
-    },
   },
   brand: {
     display: "inline-flex",
@@ -258,7 +257,7 @@ const styles = create({
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 8,
-    transition: "color 150ms ease",
+    transition: `color 150ms ${motion.easeOut}`,
   },
   tabSelected: {
     fontWeight: 600,
@@ -266,20 +265,18 @@ const styles = create({
   },
   tabIndicator: {
     position: "absolute",
-    right: 0,
     bottom: -1,
-    left: 0,
+    left: "var(--active-tab-left)",
+    width: "var(--active-tab-width)",
     height: 2,
-    pointerEvents: "none",
     backgroundColor: t.primary,
-    clipPath:
-      "inset(0 calc(100% - var(--active-tab-left) - var(--active-tab-width)) 0 var(--active-tab-left) round 9999px)",
+    borderRadius: 9999,
     transitionTimingFunction: motion.easeOut,
     transitionDuration: {
       default: "200ms",
       [chatMedia.reducedMotion]: "0ms",
     },
-    transitionProperty: "clip-path",
+    transitionProperty: "left, width",
   },
   tabPanel: {
     outline: "none",

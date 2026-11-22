@@ -11,7 +11,7 @@ import {
 } from "@ui-sdk/react/dialog";
 import { Field, FieldLabel } from "@ui-sdk/react/field";
 import { Input } from "@ui-sdk/react/input";
-import { createContext, use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { CloseIcon } from "#/chat/icons";
 import type { FavoriteDecoration } from "#/lib/profile";
@@ -20,7 +20,6 @@ import { favoriteStyles as styles } from "./favorite-styles";
 import { EditIcon, SearchIcon } from "./icons";
 
 const EMPTY_DECORATION: FavoriteDecoration = { comment: null, emoji: null, color: null };
-const EMPTY_META: Record<string, never> = {};
 
 const normalizeDecoration = (decoration: FavoriteDecoration): FavoriteDecoration => ({
   comment: decoration.comment?.trim() || null,
@@ -28,265 +27,120 @@ const normalizeDecoration = (decoration: FavoriteDecoration): FavoriteDecoration
   color: decoration.color,
 });
 
-type FavoriteDialogContextValue = {
-  state: {
-    open: boolean;
-    decoration: FavoriteDecoration;
-    canSave: boolean;
-    saving: boolean;
-  };
-  actions: {
-    onOpenChange: (next: boolean) => void;
-    setDecoration: (next: FavoriteDecoration) => void;
-    submit: (event: { preventDefault: () => void }) => void;
-  };
-  meta: {
-    fieldPrefix: string;
-  };
+type FavoriteSearch<T> = {
+  query: string;
+  setQuery: (value: string) => void;
+  results: Array<T>;
+  searching: boolean;
+  error: string | null;
+  reset: () => void;
 };
 
-const FavoriteDialogContext = createContext<FavoriteDialogContextValue | null>(null);
+/** ダイアログが開いている間、入力に合わせて検索 API を debounce 付きで呼ぶ。 */
+function useFavoriteSearch<T>(
+  searchFn: (query: string) => Promise<Array<T>>,
+  open: boolean,
+): FavoriteSearch<T> {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Array<T>>([]);
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-function useFavoriteDialog() {
-  const value = use(FavoriteDialogContext);
-  if (!value) {
-    throw new Error("FavoriteDialog の部品は Provider の中で使う");
-  }
-  return value;
-}
+  const trimmedQuery = open ? query.trim() : "";
 
-type FavoriteSearchUiContextValue = {
-  state: {
-    query: string;
-    resultCount: number;
-    searching: boolean;
-    error: string | null;
-  };
-  actions: {
-    setQuery: (value: string) => void;
-    clearSelected: () => void;
-  };
-  meta: Record<string, never>;
-};
-
-const FavoriteSearchUiContext = createContext<FavoriteSearchUiContextValue | null>(null);
-
-function useFavoriteSearchUi() {
-  const value = use(FavoriteSearchUiContext);
-  if (!value) {
-    throw new Error("FavoriteDialog の検索部品は AddProvider の中で使う");
-  }
-  return value;
-}
-
-type TypedFavoriteSearchContextValue<T> = {
-  state: {
-    results: Array<T>;
-    selected: T | null;
-  };
-  actions: {
-    select: (item: T) => void;
-    clearSelected: () => void;
-  };
-  meta: Record<string, never>;
-};
-
-/** 検索対象の型 T ごとに型安全な AddProvider と Hook を生成する。 */
-export function createFavoriteAddContext<T>() {
-  const ItemContext = createContext<TypedFavoriteSearchContextValue<T> | null>(null);
-
-  function useFavoriteAdd() {
-    const value = use(ItemContext);
-    if (!value) {
-      throw new Error("useFavoriteAdd は AddProvider の中で使う");
+  useEffect(() => {
+    if (!trimmedQuery) {
+      return;
     }
-    return value;
-  }
 
-  function AddProvider({
-    searchFn,
-    isSelectable = () => true,
-    saving,
-    fieldPrefix,
-    onAdd,
-    children,
-  }: {
-    searchFn: (query: string) => Promise<Array<T>>;
-    isSelectable?: (item: T) => boolean;
-    saving: boolean;
-    fieldPrefix: string;
-    onAdd: (item: T, decoration: FavoriteDecoration) => Promise<void>;
-    children: ReactNode;
-  }) {
-    const [open, setOpen] = useState(false);
-    const [selected, setSelected] = useState<T | null>(null);
-    const [decoration, setDecoration] = useState<FavoriteDecoration>(EMPTY_DECORATION);
-    const [query, setQuery] = useState("");
-    const [results, setResults] = useState<Array<T>>([]);
-    const [searching, setSearching] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    let cancelled = false;
 
-    const trimmedQuery = open ? query.trim() : "";
-
-    useEffect(() => {
-      if (!trimmedQuery) {
-        return;
-      }
-
-      let cancelled = false;
-
-      const timer = window.setTimeout(() => {
-        setSearching(true);
-        setError(null);
-        searchFn(trimmedQuery)
-          .then((found) => {
-            if (cancelled) {
-              return;
-            }
-            setResults(found);
-            setSearching(false);
-          })
-          .catch((error_: unknown) => {
-            if (cancelled) {
-              return;
-            }
-            setResults([]);
-            setSearching(false);
-            setError(error_ instanceof Error ? error_.message : "検索に失敗しました");
-          });
-      }, 220);
-
-      return () => {
-        cancelled = true;
-        window.clearTimeout(timer);
-      };
-    }, [trimmedQuery, searchFn]);
-
-    const onOpenChange = (next: boolean) => {
-      if (!next) {
-        setQuery("");
-        setResults([]);
-        setSearching(false);
-        setError(null);
-        setSelected(null);
-        setDecoration(EMPTY_DECORATION);
-      }
-      setOpen(next);
-    };
-
-    const { emojiError, commentError } = validateDecoration(decoration);
-    const canSave =
-      Boolean(selected && isSelectable(selected)) && !emojiError && !commentError && !saving;
-
-    const submit = (event: { preventDefault: () => void }) => {
-      event.preventDefault();
-      if (!canSave || !selected) {
-        return;
-      }
-      void onAdd(selected, normalizeDecoration(decoration))
-        .then(() => onOpenChange(false))
-        .catch(() => {
-          // エラー通知は Provider 側の toast で行う。
+    const timer = window.setTimeout(() => {
+      setSearching(true);
+      setError(null);
+      searchFn(trimmedQuery)
+        .then((found) => {
+          if (cancelled) {
+            return;
+          }
+          setResults(found);
+          setSearching(false);
+        })
+        .catch((error_: unknown) => {
+          if (cancelled) {
+            return;
+          }
+          setResults([]);
+          setSearching(false);
+          setError(error_ instanceof Error ? error_.message : "検索に失敗しました");
         });
+    }, 220);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
     };
+  }, [trimmedQuery, searchFn]);
 
-    const visibleResults = trimmedQuery ? results : [];
-    const clearSelected = () => setSelected(null);
-
-    return (
-      <FavoriteDialogContext
-        value={{
-          state: { open, decoration, canSave, saving },
-          actions: { onOpenChange, setDecoration, submit },
-          meta: { fieldPrefix },
-        }}
-      >
-        <FavoriteSearchUiContext
-          value={{
-            state: {
-              query,
-              resultCount: visibleResults.length,
-              searching: trimmedQuery ? searching : false,
-              error: trimmedQuery ? error : null,
-            },
-            actions: { setQuery, clearSelected },
-            meta: EMPTY_META,
-          }}
-        >
-          <ItemContext
-            value={{
-              state: { results: visibleResults, selected },
-              actions: { select: setSelected, clearSelected },
-              meta: EMPTY_META,
-            }}
-          >
-            <Dialog open={open} onOpenChange={onOpenChange}>
-              {children}
-            </Dialog>
-          </ItemContext>
-        </FavoriteSearchUiContext>
-      </FavoriteDialogContext>
-    );
-  }
-
-  return { AddProvider, useFavoriteAdd };
+  return {
+    query,
+    setQuery,
+    results: trimmedQuery ? results : [],
+    searching: trimmedQuery ? searching : false,
+    error: trimmedQuery ? error : null,
+    reset: () => {
+      setQuery("");
+      setResults([]);
+      setSearching(false);
+      setError(null);
+    },
+  };
 }
 
-/** 既存のお気に入り編集ダイアログ用の Provider。共通の FavoriteDialogContext を実装する。 */
-function EditProvider({
-  initial,
-  saving,
-  fieldPrefix,
-  onSave,
-  children,
-}: {
-  initial: FavoriteDecoration;
-  saving: boolean;
-  fieldPrefix: string;
-  onSave: (decoration: FavoriteDecoration) => Promise<void>;
-  children: ReactNode;
-}) {
+/** 追加ダイアログの状態（開閉・検索・選択・飾り）をまとめる。 */
+export function useFavoriteAddDraft<T>(searchFn: (query: string) => Promise<Array<T>>) {
   const [open, setOpen] = useState(false);
-  const [decoration, setDecoration] = useState<FavoriteDecoration>(initial);
+  const [selected, setSelected] = useState<T | null>(null);
+  const [decoration, setDecoration] = useState<FavoriteDecoration>(EMPTY_DECORATION);
+  const search = useFavoriteSearch(searchFn, open);
 
   const onOpenChange = (next: boolean) => {
-    if (next) {
-      setDecoration(initial);
+    if (!next) {
+      search.reset();
+      setSelected(null);
+      setDecoration(EMPTY_DECORATION);
     }
     setOpen(next);
   };
 
   const { emojiError, commentError } = validateDecoration(decoration);
-  const canSave = !emojiError && !commentError && !saving;
 
-  const submit = (event: { preventDefault: () => void }) => {
-    event.preventDefault();
-    if (!canSave) {
+  const save = async (add: (item: T, decoration: FavoriteDecoration) => Promise<void>) => {
+    if (!selected) {
       return;
     }
-    void onSave(normalizeDecoration(decoration))
-      .then(() => setOpen(false))
-      .catch(() => {
-        // エラー通知は Provider 側の toast で行う。
-      });
+    try {
+      await add(selected, normalizeDecoration(decoration));
+      onOpenChange(false);
+    } catch {
+      // エラー通知は Provider 側の toast で行う。
+    }
   };
 
-  return (
-    <FavoriteDialogContext
-      value={{
-        state: { open, decoration, canSave, saving },
-        actions: { onOpenChange, setDecoration, submit },
-        meta: { fieldPrefix },
-      }}
-    >
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        {children}
-      </Dialog>
-    </FavoriteDialogContext>
-  );
+  return {
+    open,
+    onOpenChange,
+    selected,
+    setSelected,
+    decoration,
+    setDecoration,
+    isDecorationValid: !emojiError && !commentError,
+    search,
+    save,
+  };
 }
 
-function Content({
+export function FavoriteDialogContent({
   title,
   description,
   children,
@@ -314,56 +168,64 @@ function Content({
   );
 }
 
-function Form({ children }: { children: ReactNode }) {
-  const { actions } = useFavoriteDialog();
+export function FavoriteDialogForm({
+  onSubmit,
+  children,
+}: {
+  onSubmit: (event: { preventDefault: () => void }) => void;
+  children: ReactNode;
+}) {
   return (
-    <form {...props(styles.form)} onSubmit={actions.submit}>
+    <form {...props(styles.form)} onSubmit={onSubmit}>
       {children}
     </form>
   );
 }
 
-function DecorationFields() {
-  const { state, actions, meta } = useFavoriteDialog();
-  return (
-    <FavoriteDecorationFields
-      value={state.decoration}
-      onChange={actions.setDecoration}
-      fieldPrefix={meta.fieldPrefix}
-    />
-  );
-}
-
-function Footer({ idleLabel, savingLabel }: { idleLabel: string; savingLabel: string }) {
-  const { state } = useFavoriteDialog();
+export function FavoriteDialogFooter({
+  disabled,
+  children,
+}: {
+  disabled: boolean;
+  children: ReactNode;
+}) {
   return (
     <div {...props(styles.dialogFooter)}>
       <DialogClose {...props(styles.secondaryBtn)}>キャンセル</DialogClose>
-      <Button type="submit" disabled={!state.canSave} {...props(styles.primaryBtn)}>
-        {state.saving ? savingLabel : idleLabel}
+      <Button type="submit" disabled={disabled} {...props(styles.primaryBtn)}>
+        {children}
       </Button>
     </div>
   );
 }
 
-function SelectedBox({ resetLabel, children }: { resetLabel: string; children: ReactNode }) {
-  const { actions } = useFavoriteSearchUi();
+export function FavoriteSelectedBox({
+  resetLabel,
+  onReset,
+  children,
+}: {
+  resetLabel: string;
+  onReset: () => void;
+  children: ReactNode;
+}) {
   return (
     <div {...props(styles.selectedBox)}>
       {children}
-      <Button type="button" {...props(styles.secondaryBtnSm)} onClick={actions.clearSelected}>
+      <Button type="button" {...props(styles.secondaryBtnSm)} onClick={onReset}>
         {resetLabel}
       </Button>
     </div>
   );
 }
 
-function SearchSection({
+/** 検索欄・状態表示・結果リスト（children）をまとめた検索セクション。 */
+export function FavoriteSearchSection<T>({
   name,
   label,
   placeholder,
   idleMessage,
   notFoundMessage,
+  search,
   children,
 }: {
   name: string;
@@ -371,17 +233,17 @@ function SearchSection({
   placeholder: string;
   idleMessage: string;
   notFoundMessage: string;
+  search: FavoriteSearch<T>;
   children: ReactNode;
 }) {
-  const { state, actions } = useFavoriteSearchUi();
-  const { query, resultCount, searching, error } = state;
+  const { query, results, searching, error } = search;
   const status = searching
     ? "検索中…"
     : (error ??
-      (query.trim() && resultCount === 0
+      (query.trim() && results.length === 0
         ? notFoundMessage
-        : resultCount > 0
-          ? `${resultCount} 件の候補`
+        : results.length > 0
+          ? `${results.length} 件の候補`
           : idleMessage));
 
   return (
@@ -394,7 +256,7 @@ function SearchSection({
           </span>
           <Input
             value={query}
-            onValueChange={actions.setQuery}
+            onValueChange={search.setQuery}
             placeholder={placeholder}
             {...props(styles.searchInput)}
           />
@@ -405,23 +267,12 @@ function SearchSection({
         {status}
       </div>
 
-      {resultCount > 0 ? children : null}
+      {results.length > 0 ? children : null}
     </div>
   );
 }
 
-export const FavoriteDialog = {
-  EditProvider,
-  Trigger: DialogTrigger,
-  Content,
-  Form,
-  DecorationFields,
-  Footer,
-  SelectedBox,
-  SearchSection,
-};
-
-/** 既存のお気に入りのメモ・絵文字・色を編集する明示的バリアント。 */
+/** 既存のお気に入りのメモ・絵文字・色を編集するダイアログ。 */
 export function EditFavoriteDialog({
   title,
   initial,
@@ -435,28 +286,52 @@ export function EditFavoriteDialog({
   saving: boolean;
   onSave: (decoration: FavoriteDecoration) => Promise<void>;
 }) {
+  const [open, setOpen] = useState(false);
+  const [decoration, setDecoration] = useState<FavoriteDecoration>(initial);
+
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      setDecoration(initial);
+    }
+    setOpen(next);
+  };
+
+  const { emojiError, commentError } = validateDecoration(decoration);
+  const canSave = !emojiError && !commentError && !saving;
+
+  const handleSubmit = async (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+    if (!canSave) {
+      return;
+    }
+    try {
+      await onSave(normalizeDecoration(decoration));
+      setOpen(false);
+    } catch {
+      // エラー通知は Provider 側の toast で行う。
+    }
+  };
+
   return (
-    <FavoriteDialog.EditProvider
-      initial={initial}
-      saving={saving}
-      fieldPrefix={fieldPrefix}
-      onSave={onSave}
-    >
-      <FavoriteDialog.Trigger
-        aria-label={`「${title}」のメモと飾りを編集`}
-        {...props(styles.iconBtn)}
-      >
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger aria-label={`「${title}」のメモと飾りを編集`} {...props(styles.iconBtn)}>
         <EditIcon />
-      </FavoriteDialog.Trigger>
-      <FavoriteDialog.Content
+      </DialogTrigger>
+      <FavoriteDialogContent
         title={`「${title}」を編集`}
         description="ひとことメモ、絵文字バッジ、アクセントカラーを設定できます。"
       >
-        <FavoriteDialog.Form>
-          <FavoriteDialog.DecorationFields />
-          <FavoriteDialog.Footer idleLabel="変更を保存" savingLabel="保存中…" />
-        </FavoriteDialog.Form>
-      </FavoriteDialog.Content>
-    </FavoriteDialog.EditProvider>
+        <FavoriteDialogForm onSubmit={(event) => void handleSubmit(event)}>
+          <FavoriteDecorationFields
+            value={decoration}
+            onChange={setDecoration}
+            fieldPrefix={fieldPrefix}
+          />
+          <FavoriteDialogFooter disabled={!canSave}>
+            {saving ? "保存中…" : "変更を保存"}
+          </FavoriteDialogFooter>
+        </FavoriteDialogForm>
+      </FavoriteDialogContent>
+    </Dialog>
   );
 }

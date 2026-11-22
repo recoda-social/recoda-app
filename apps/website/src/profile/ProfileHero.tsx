@@ -13,8 +13,7 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from "@ui-sdk/react/field";
 import { Input } from "@ui-sdk/react/input";
 import { Textarea } from "@ui-sdk/react/textarea";
-import { createContext, use, useState } from "react";
-import type { ReactNode } from "react";
+import { useState } from "react";
 import { CloseIcon } from "#/chat/icons";
 import { chatMedia, chatTokens as t } from "#/chat/tokens.stylex";
 import { motion } from "#/motion.stylex";
@@ -29,47 +28,14 @@ function countChars(value: string) {
   return Array.from(value.trim()).length;
 }
 
-type ProfileEditContextValue = {
-  state: {
-    open: boolean;
-    name: string;
-    bio: string;
-    nameError: string | null;
-    nameLength: number;
-    bioLength: number;
-    isUpdating: boolean;
-    canSubmit: boolean;
-  };
-  actions: {
-    onOpenChange: (next: boolean) => void;
-    updateName: (value: string) => void;
-    updateBio: (value: string) => void;
-    submit: (event: React.FormEvent<HTMLFormElement>) => void;
-  };
-  meta: {
-    userNameMax: number;
-    userBioMax: number;
-  };
-};
-
-const ProfileEditContext = createContext<ProfileEditContextValue | null>(null);
-
-function useProfileEdit() {
-  const value = use(ProfileEditContext);
-  if (!value) {
-    throw new Error("useProfileEdit は ProfileEditProvider の中で使う");
-  }
-  return value;
-}
-
-function ProfileEditProvider({ children }: { children: ReactNode }) {
+function ProfileEditDialog() {
   const { state, actions, meta } = useProfile();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(state.user.name);
   const [bio, setBio] = useState(state.user.bio ?? "");
   const [nameError, setNameError] = useState<string | null>(null);
 
-  const onOpenChange = (next: boolean) => {
+  const handleOpenChange = (next: boolean) => {
     if (next) {
       setName(state.profile?.name ?? state.user.name);
       setBio(state.profile?.bio ?? state.user.bio ?? "");
@@ -80,10 +46,8 @@ function ProfileEditProvider({ children }: { children: ReactNode }) {
 
   const nameLength = countChars(name);
   const bioLength = countChars(bio);
-  const canSubmit =
-    !state.isUpdatingProfile && Boolean(name.trim()) && bioLength <= meta.userBioMax;
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -97,52 +61,16 @@ function ProfileEditProvider({ children }: { children: ReactNode }) {
     if (bioLength > meta.userBioMax) {
       return;
     }
-    void actions
-      .updateProfile({ name: trimmedName, bio: bio.trim() })
-      .then(() => setOpen(false))
-      .catch(() => {
-        // エラー通知は Provider 側の toast で行う。
-      });
+    try {
+      await actions.updateProfile({ name: trimmedName, bio: bio.trim() });
+      setOpen(false);
+    } catch {
+      // エラー通知は Provider 側の toast で行う。
+    }
   };
 
   return (
-    <ProfileEditContext
-      value={{
-        state: {
-          open,
-          name,
-          bio,
-          nameError,
-          nameLength,
-          bioLength,
-          isUpdating: state.isUpdatingProfile,
-          canSubmit,
-        },
-        actions: {
-          onOpenChange,
-          updateName: (value) => {
-            setName(value);
-            setNameError(null);
-          },
-          updateBio: setBio,
-          submit,
-        },
-        meta: {
-          userNameMax: meta.userNameMax,
-          userBioMax: meta.userBioMax,
-        },
-      }}
-    >
-      {children}
-    </ProfileEditContext>
-  );
-}
-
-function ProfileEditDialogContent() {
-  const { state, actions, meta } = useProfileEdit();
-
-  return (
-    <Dialog open={state.open} onOpenChange={actions.onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger {...props(styles.editBtn)}>
         <EditIcon />
         <span>プロフィールを編集</span>
@@ -161,59 +89,58 @@ function ProfileEditDialogContent() {
           </DialogClose>
         </div>
 
-        <form {...props(styles.form)} onSubmit={actions.submit}>
-          <Field name="displayName" invalid={state.nameError ? true : undefined}>
+        <form {...props(styles.form)} onSubmit={(event) => void handleSubmit(event)}>
+          <Field name="displayName" invalid={nameError ? true : undefined}>
             <FieldLabel {...props(styles.label)}>表示名</FieldLabel>
             <Input
-              value={state.name}
-              onValueChange={actions.updateName}
+              value={name}
+              onValueChange={(value) => {
+                setName(value);
+                setNameError(null);
+              }}
               maxLength={meta.userNameMax}
               required
               placeholder="表示名"
               {...props(styles.input)}
             />
             <FieldDescription {...props(styles.fieldHint)}>
-              {state.nameLength} / {meta.userNameMax}
+              {nameLength} / {meta.userNameMax}
             </FieldDescription>
             <FieldError match="valueMissing">表示名を入力してください</FieldError>
-            {state.nameError ? <FieldError match>{state.nameError}</FieldError> : null}
+            {nameError ? <FieldError match>{nameError}</FieldError> : null}
           </Field>
 
-          <Field name="bio" invalid={state.bioLength > meta.userBioMax ? true : undefined}>
+          <Field name="bio" invalid={bioLength > meta.userBioMax ? true : undefined}>
             <FieldLabel {...props(styles.label)}>自己紹介</FieldLabel>
             <Textarea
-              value={state.bio}
-              onValueChange={actions.updateBio}
+              value={bio}
+              onValueChange={setBio}
               rows={4}
               maxLength={meta.userBioMax}
               placeholder="よく聴くジャンルや、音楽の好みなどを書いてみましょう"
               {...props(styles.textarea)}
             />
             <FieldDescription {...props(styles.fieldHint)}>
-              {state.bioLength} / {meta.userBioMax}
+              {bioLength} / {meta.userBioMax}
             </FieldDescription>
-            {state.bioLength > meta.userBioMax ? (
+            {bioLength > meta.userBioMax ? (
               <FieldError match>自己紹介は {meta.userBioMax} 文字以内で入力してください</FieldError>
             ) : null}
           </Field>
 
           <div {...props(styles.dialogFooter)}>
             <DialogClose {...props(styles.secondaryBtn)}>キャンセル</DialogClose>
-            <Button type="submit" disabled={!state.canSubmit} {...props(styles.primaryBtn)}>
-              {state.isUpdating ? "保存中…" : "変更を保存"}
+            <Button
+              type="submit"
+              disabled={state.isUpdatingProfile || !name.trim() || bioLength > meta.userBioMax}
+              {...props(styles.primaryBtn)}
+            >
+              {state.isUpdatingProfile ? "保存中…" : "変更を保存"}
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function ProfileEditDialog() {
-  return (
-    <ProfileEditProvider>
-      <ProfileEditDialogContent />
-    </ProfileEditProvider>
   );
 }
 
@@ -459,15 +386,7 @@ const styles = create({
     position: "fixed",
     inset: 0,
     backgroundColor: "rgba(0, 0, 0, 0.42)",
-    opacity: {
-      "@starting-style": 0,
-      default: 1,
-    },
     backdropFilter: "blur(2px)",
-    transition: {
-      default: `opacity 200ms ${motion.easeOut}`,
-      [chatMedia.reducedMotion]: "opacity 150ms ease",
-    },
   },
   dialog: {
     width: "min(480px, calc(100vw - 24px))",
@@ -479,22 +398,6 @@ const styles = create({
     borderWidth: 1,
     borderRadius: 18,
     boxShadow: t.shadow,
-    opacity: {
-      "@starting-style": 0,
-      default: 1,
-    },
-    transform: {
-      "@starting-style": {
-        default: "scale(0.96)",
-        [chatMedia.reducedMotion]: "none",
-      },
-      default: "scale(1)",
-    },
-    transformOrigin: "center",
-    transition: {
-      default: `opacity 200ms ${motion.easeOut}, transform 200ms ${motion.easeOut}`,
-      [chatMedia.reducedMotion]: "opacity 150ms ease",
-    },
   },
   dialogHeader: {
     display: "flex",

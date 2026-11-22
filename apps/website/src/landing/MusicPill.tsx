@@ -33,7 +33,7 @@ type MusicPillProps = {
 export function MusicPill({ artVariant, title, artist }: MusicPillProps) {
   return (
     <div {...props(styles.pill)}>
-      <TrackArt.Decorative variant={artVariant} />
+      <TrackArt variant={artVariant} />
       <span>
         <strong {...props(styles.title)}>{title}</strong>
         <small {...props(styles.subtitle)}>{artist}</small>

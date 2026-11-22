@@ -24,14 +24,9 @@ type DraftAssistActions = {
   selectEmptyHintAngle: (angle: EmptyHintAngle) => void;
 };
 
-type DraftAssistMeta = {
-  maxAssistCount: number;
-};
-
 export type DraftAssistContextValue = {
   state: DraftAssistState;
   actions: DraftAssistActions;
-  meta: DraftAssistMeta;
 };
 
 export const DraftAssistContext = createContext<DraftAssistContextValue | null>(null);

@@ -1,18 +1,18 @@
 import { create, keyframes, props } from "@stylexjs/stylex";
+import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/react/avatar";
 import { Toggle } from "@ui-sdk/react/toggle";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Me } from "#/lib/auth";
-import { artworkUrl } from "#/lib/musickit";
+import { artworkUrl, catalogSongsQuery } from "#/lib/musickit";
 import type { AppleSong } from "#/lib/musickit";
+import { similarPostsQuery } from "#/lib/posts";
 import type { PostView } from "#/lib/posts";
 import { motion } from "#/motion.stylex";
 import { PreviewToggle } from "#/songs/PreviewToggle";
 import { useChat } from "./ChatContext";
 import { MusicNoteIcon } from "./icons";
 import { SearchingNotes, useSearchingNotes } from "./SearchingNotes";
-import { useSimilarPosts } from "./SimilarPostsContext";
-import { SimilarPostsProvider } from "./SimilarPostsProvider";
 import { chatMedia, chatTokens as t } from "./tokens.stylex";
 import type { ChatTurn } from "./types";
 
@@ -70,7 +70,7 @@ function UserTurnMessage({ user, song, content }: { user: Me; song: AppleSong; c
     const composerRect = document.querySelector("[data-chat-composer]")?.getBoundingClientRect();
     const rawDelta = composerRect ? composerRect.top - rect.top : 40;
     const deltaY = Math.max(24, Math.min(rawDelta, window.innerHeight * 0.65));
-    const duration = Math.round(Math.min(280, Math.max(200, 180 + deltaY * 0.25)));
+    const duration = Math.round(Math.min(420, Math.max(240, 200 + deltaY * 0.42)));
 
     const animation = el.animate(
       [
@@ -196,9 +196,34 @@ function SimilarPostCard({
   );
 }
 
-function AssistantSimilarReplyContent() {
-  const { state, actions, meta } = useSimilarPosts();
+function AssistantSimilarReply({ postId, songTitle }: { postId: string; songTitle: string }) {
+  const [includeSameSong, setIncludeSameSong] = useState(false);
+  const query = useQuery(similarPostsQuery(postId, includeSameSong));
   const searchingNotes = useSearchingNotes();
+  const setNotesActive = searchingNotes?.actions.setActive;
+
+  useEffect(() => {
+    setNotesActive?.(query.isPending);
+  }, [query.isPending, setNotesActive]);
+
+  const similarPosts = useMemo(() => query.data?.posts ?? [], [query.data?.posts]);
+  const songIds = useMemo(
+    () =>
+      similarPosts.map((post) => post.song?.appleSongId).filter((id): id is string => Boolean(id)),
+    [similarPosts],
+  );
+  const catalogQuery = useQuery(catalogSongsQuery(songIds));
+  const catalogSongs = useMemo(() => {
+    const byId = new Map<string, AppleSong>();
+    const byIsrc = new Map<string, AppleSong>();
+    for (const song of catalogQuery.data ?? []) {
+      byId.set(song.id, song);
+      if (song.attributes.isrc) {
+        byIsrc.set(song.attributes.isrc.toUpperCase(), song);
+      }
+    }
+    return { byId, byIsrc };
+  }, [catalogQuery.data]);
 
   return (
     <article {...props(styles.turn, styles.turnAssistant, styles.turnAssistantEnter)}>
@@ -214,50 +239,48 @@ function AssistantSimilarReplyContent() {
       <div {...props(styles.assistantBody)}>
         <div {...props(styles.assistantHeader)}>
           <p {...props(styles.assistantLead)}>
-            「{meta.songTitle}」の感想を投稿しました。
-            {state.isPending
+            「{songTitle}」の感想を投稿しました。
+            {query.isPending
               ? "近い感覚の曲を探しています…"
-              : state.posts.length > 0
+              : similarPosts.length > 0
                 ? "似た感覚の感想が見つかりました。"
                 : "まだ近い感想は見つかりませんでした。"}
           </p>
           <Toggle
-            {...props(styles.filterToggle, state.includeSameSong && styles.filterTogglePressed)}
-            pressed={state.includeSameSong}
-            onPressedChange={actions.setIncludeSameSong}
+            {...props(styles.filterToggle, includeSameSong && styles.filterTogglePressed)}
+            pressed={includeSameSong}
+            onPressedChange={setIncludeSameSong}
           >
             同じ曲も含める
           </Toggle>
         </div>
 
-        {state.error ? (
+        {query.isError ? (
           <p role="alert" {...props(styles.errorText)}>
-            {state.error}
+            {query.error.message}
           </p>
         ) : null}
 
-        {state.posts.length > 0 ? (
+        {similarPosts.length > 0 ? (
           <div {...props(styles.similarList)}>
-            {state.posts.map((post, index) => (
-              <SimilarPostCard
-                key={post.id}
-                post={post}
-                catalogSong={actions.lookupCatalogSong(post)}
-                index={index}
-              />
-            ))}
+            {similarPosts.map((post, index) => {
+              const catalogSong = post.song
+                ? (catalogSongs.byId.get(post.song.appleSongId) ??
+                  catalogSongs.byIsrc.get(post.song.isrc.toUpperCase()))
+                : undefined;
+              return (
+                <SimilarPostCard
+                  key={post.id}
+                  post={post}
+                  catalogSong={catalogSong}
+                  index={index}
+                />
+              );
+            })}
           </div>
         ) : null}
       </div>
     </article>
-  );
-}
-
-function AssistantSimilarReply({ postId, songTitle }: { postId: string; songTitle: string }) {
-  return (
-    <SimilarPostsProvider postId={postId} songTitle={songTitle}>
-      <AssistantSimilarReplyContent />
-    </SimilarPostsProvider>
   );
 }
 

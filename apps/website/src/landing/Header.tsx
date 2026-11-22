@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { create, props } from "@stylexjs/stylex";
-import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "@ui-sdk/react/collapsible";
 import { motion } from "#/motion.stylex";
 import { fontTokens, landingMedia, landingTokens as t } from "./tokens.stylex";
 import { Logo } from "./Logo";
@@ -64,7 +63,7 @@ const styles = create({
       default: 1,
       ":active": 0.65,
     },
-    transition: "color 120ms ease, opacity 120ms ease",
+    transition: `color 120ms ${motion.easeOut}, opacity 120ms ${motion.easeOut}`,
   },
   headerPrimaryLinkHidden: {
     // StartButton の display（inline-flex）を、640px 以下でだけ none にする。default を null にすると inline-flex も消える。
@@ -91,7 +90,7 @@ const styles = create({
     transform: {
       default: null,
       ":active": {
-        default: "scale(0.97)",
+        default: "scale(0.92)",
         [landingMedia.reducedMotion]: "none",
       },
     },
@@ -197,7 +196,7 @@ const styles = create({
       default: 1,
       ":active": 0.65,
     },
-    transition: "color 120ms ease, opacity 120ms ease",
+    transition: `color 120ms ${motion.easeOut}, opacity 120ms ${motion.easeOut}`,
   },
 });
 
@@ -205,12 +204,7 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <Collapsible
-      open={isMenuOpen}
-      onOpenChange={setIsMenuOpen}
-      render={<header />}
-      {...props(styles.header)}
-    >
+    <header {...props(styles.header)}>
       <div {...props(styles.headerInner)}>
         <Logo />
         <nav aria-label="メインナビゲーション" {...props(styles.nav)}>
@@ -225,18 +219,25 @@ export function Header() {
           </a>
         </nav>
         <StartButton style={styles.headerPrimaryLinkHidden} />
-        <CollapsibleTrigger
+        <button
+          type="button"
           aria-label={isMenuOpen ? "メニューを閉じる" : "メニューを開く"}
+          aria-expanded={isMenuOpen}
+          aria-controls="mobile-nav"
+          onClick={() => setIsMenuOpen((open) => !open)}
           {...props(styles.menuButton)}
         >
           <span {...props(styles.menuButtonBarTop, isMenuOpen && styles.menuButtonBarTopOpen)} />
           <span
             {...props(styles.menuButtonBarBottom, isMenuOpen && styles.menuButtonBarBottomOpen)}
           />
-        </CollapsibleTrigger>
+        </button>
       </div>
-      <CollapsiblePanel
-        render={<nav aria-label="モバイルナビゲーション" />}
+      <nav
+        id="mobile-nav"
+        aria-label="モバイルナビゲーション"
+        aria-hidden={!isMenuOpen}
+        inert={!isMenuOpen}
         {...props(styles.mobileNav, isMenuOpen && styles.mobileNavOpen)}
       >
         <a href="#about" {...props(styles.navLinkMobile)} onClick={() => setIsMenuOpen(false)}>
@@ -252,7 +253,7 @@ export function Header() {
         <a href="#voices" {...props(styles.navLinkMobile)} onClick={() => setIsMenuOpen(false)}>
           Voices
         </a>
-      </CollapsiblePanel>
-    </Collapsible>
+      </nav>
+    </header>
   );
 }

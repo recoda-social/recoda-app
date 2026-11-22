@@ -1,14 +1,15 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuth } from "#/auth/AuthContext";
 import { ChatWorkspace } from "#/chat/ChatWorkspace";
 import { Landing } from "#/landing/Landing";
+import { meQuery } from "#/lib/auth";
 
 export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
-  const { state } = useAuth();
+  const me = useQuery(meQuery);
 
-  if (state.isPending) {
+  if (me.isPending) {
     return (
       <main
         style={{
@@ -24,9 +25,9 @@ function Home() {
     );
   }
 
-  if (!state.user) {
+  if (!me.data) {
     return <Landing />;
   }
 
-  return <ChatWorkspace user={state.user} />;
+  return <ChatWorkspace user={me.data} />;
 }

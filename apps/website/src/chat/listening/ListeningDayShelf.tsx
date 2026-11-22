@@ -1,5 +1,4 @@
 import { create, props } from "@stylexjs/stylex";
-import { Button } from "@ui-sdk/react/button";
 import {
   Popover,
   PopoverClose,
@@ -53,6 +52,8 @@ function SongArt({
 
 type LoggedSongPillProps = {
   log: ListeningLogView;
+  onWriteReview: (log: ListeningLogView) => void;
+  onRemove: (logId: string) => void;
 };
 
 function PillContent({ song }: { song: ListeningLogView["song"] }) {
@@ -69,8 +70,7 @@ function PillContent({ song }: { song: ListeningLogView["song"] }) {
   );
 }
 
-function MobileLoggedSongPill({ log }: LoggedSongPillProps) {
-  const { actions } = useListeningLog();
+function MobileLoggedSongPill({ log, onWriteReview, onRemove }: LoggedSongPillProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const title = log.song.title ?? "（曲名なし）";
   const artist = log.song.artistName ?? "";
@@ -90,15 +90,11 @@ function MobileLoggedSongPill({ log }: LoggedSongPillProps) {
           </div>
         </div>
         <div {...props(styles.actionButtons)}>
-          <BottomSheetDrawer.Close
-            onClick={() => actions.writeReviewForLog(log)}
-            {...props(styles.actionBtn)}
-          >
+          <BottomSheetDrawer.Close onClick={() => onWriteReview(log)} {...props(styles.actionBtn)}>
             この曲の感想を書く
           </BottomSheetDrawer.Close>
           <BottomSheetDrawer.Close
-            data-agent-confirm={`「${title}」をこの日の聴いた曲の記録から削除します`}
-            onClick={() => actions.removeLog(log.id)}
+            onClick={() => onRemove(log.id)}
             {...props(styles.actionBtn, styles.actionBtnDanger)}
           >
             この日の記録から外す
@@ -109,8 +105,7 @@ function MobileLoggedSongPill({ log }: LoggedSongPillProps) {
   );
 }
 
-function DesktopLoggedSongPill({ log }: LoggedSongPillProps) {
-  const { actions } = useListeningLog();
+function DesktopLoggedSongPill({ log, onWriteReview, onRemove }: LoggedSongPillProps) {
   const title = log.song.title ?? "（曲名なし）";
   const artist = log.song.artistName ?? "";
   const triggerLabel = `${title}${artist ? `（${artist}）` : ""}のメニューを開く`;
@@ -130,12 +125,11 @@ function DesktopLoggedSongPill({ log }: LoggedSongPillProps) {
           </div>
         </div>
         <div {...props(styles.actionButtons)}>
-          <PopoverClose onClick={() => actions.writeReviewForLog(log)} {...props(styles.actionBtn)}>
+          <PopoverClose onClick={() => onWriteReview(log)} {...props(styles.actionBtn)}>
             この曲の感想を書く
           </PopoverClose>
           <PopoverClose
-            data-agent-confirm={`「${title}」をこの日の聴いた曲の記録から削除します`}
-            onClick={() => actions.removeLog(log.id)}
+            onClick={() => onRemove(log.id)}
             {...props(styles.actionBtn, styles.actionBtnDanger)}
           >
             この日の記録から外す
@@ -148,11 +142,12 @@ function DesktopLoggedSongPill({ log }: LoggedSongPillProps) {
 
 export function ListeningDayShelf() {
   const { state, actions } = useListeningLog();
-  const { selectedDate, selectedEntries, errorMessage, isLoading, shelfExpanded } = state;
+  const { selectedDate, selectedEntries, errorMessage, isLoading } = state;
   const compact = useMediaQuery("(max-width: 540px)");
+  const [expanded, setExpanded] = useState(false);
 
-  const visible = shelfExpanded ? selectedEntries : selectedEntries.slice(0, 2);
-  const hidden = shelfExpanded ? [] : selectedEntries.slice(2);
+  const visible = expanded ? selectedEntries : selectedEntries.slice(0, 2);
+  const hidden = expanded ? [] : selectedEntries.slice(2);
 
   return (
     <section {...props(styles.shelf)} aria-label={`${formatJapaneseDate(selectedDate)} に聴いた曲`}>
@@ -161,14 +156,14 @@ export function ListeningDayShelf() {
         <div {...props(styles.headerRight)}>
           <span {...props(styles.count)}>{selectedEntries.length} 曲</span>
           {selectedEntries.length > 2 ? (
-            <Button
+            <button
               type="button"
-              aria-expanded={shelfExpanded}
-              onClick={actions.toggleShelfExpanded}
+              aria-expanded={expanded}
+              onClick={() => setExpanded((prev) => !prev)}
               {...props(styles.toggleLink)}
             >
-              {shelfExpanded ? "折りたたむ" : "すべて見る"}
-            </Button>
+              {expanded ? "折りたたむ" : "すべて見る"}
+            </button>
           ) : null}
         </div>
       </div>
@@ -189,16 +184,26 @@ export function ListeningDayShelf() {
         <div {...props(styles.stackWrap)}>
           {visible.map((log) =>
             compact ? (
-              <MobileLoggedSongPill key={log.id} log={log} />
+              <MobileLoggedSongPill
+                key={log.id}
+                log={log}
+                onWriteReview={actions.writeReviewForLog}
+                onRemove={actions.removeLog}
+              />
             ) : (
-              <DesktopLoggedSongPill key={log.id} log={log} />
+              <DesktopLoggedSongPill
+                key={log.id}
+                log={log}
+                onWriteReview={actions.writeReviewForLog}
+                onRemove={actions.removeLog}
+              />
             ),
           )}
 
           {hidden.length > 0 ? (
-            <Button
+            <button
               type="button"
-              onClick={() => actions.setShelfExpanded(true)}
+              onClick={() => setExpanded(true)}
               aria-label={`ほか ${hidden.length} 曲を表示`}
               {...props(styles.clusterBtn)}
             >
@@ -210,7 +215,7 @@ export function ListeningDayShelf() {
                 ))}
               </span>
               <span {...props(styles.clusterLabel)}>+{hidden.length} 曲</span>
-            </Button>
+            </button>
           ) : null}
         </div>
       )}
@@ -260,7 +265,6 @@ const styles = create({
     color: t.muted,
   },
   toggleLink: {
-    height: "auto",
     paddingBlock: 2,
     paddingInline: 6,
     fontFamily: "inherit",
@@ -326,7 +330,11 @@ const styles = create({
       default: 1,
     },
     transform: {
-      default: null,
+      "@starting-style": {
+        default: "scale(0.96) translateY(4px)",
+        [chatMedia.reducedMotion]: "none",
+      },
+      default: "scale(1) translateY(0)",
       ":active": {
         default: "scale(0.98)",
         [chatMedia.reducedMotion]: "none",

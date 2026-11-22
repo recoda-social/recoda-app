@@ -12,7 +12,6 @@ type ListeningLogState = {
   visibleYear: number;
   visibleMonthIndex: number;
   calendarExpanded: boolean;
-  shelfExpanded: boolean;
   logsByDate: Map<string, Array<ListeningLogView>>;
   selectedEntries: Array<ListeningLogView>;
   isLoading: boolean;
@@ -20,6 +19,7 @@ type ListeningLogState = {
   searchQuery: string;
   searchResults: Array<AppleSong>;
   searchLoading: boolean;
+  highlightedIndex: number;
   isSaving: boolean;
 };
 
@@ -29,9 +29,9 @@ type ListeningLogActions = {
   shiftWeek: (deltaWeeks: number) => void;
   shiftMonth: (deltaMonths: number) => void;
   setCalendarExpanded: (expanded: boolean) => void;
-  setShelfExpanded: (expanded: boolean) => void;
-  toggleShelfExpanded: () => void;
   setSearchQuery: (query: string) => void;
+  setHighlightedIndex: (index: number) => void;
+  moveHighlight: (delta: -1 | 1) => void;
   addSong: (song: AppleSong) => void;
   removeLog: (logId: string) => void;
   writeReviewForLog: (log: ListeningLogView) => void;

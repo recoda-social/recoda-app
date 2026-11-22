@@ -1,8 +1,12 @@
 import { create, props } from "@stylexjs/stylex";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/react/avatar";
 import { useEffect, useRef } from "react";
+import { authClient } from "#/lib/auth-client";
+import { meQuery } from "#/lib/auth";
 import type { Me } from "#/lib/auth";
+import { motion } from "#/motion.stylex";
 import { MiniPlayerBar } from "#/songs/MiniPlayerBar";
 import { usePreviewPlayer } from "#/songs/preview-player";
 import { ChatComposer } from "./ChatComposer";
@@ -26,10 +30,12 @@ function initials(name: string) {
 }
 
 function ChatShell({ user }: { user: Me }) {
+  const queryClient = useQueryClient();
   const shellRef = useRef<HTMLDivElement | null>(null);
   const { setKeyboardOpen } = useChat().actions;
   const { state: historyState } = useChatHistory();
-  const { preloadAppleMusic } = usePreviewPlayer().actions;
+  const player = usePreviewPlayer();
+  const { preloadAppleMusic } = player.actions;
   const showTopbarBrand = !(historyState.isDesktop && historyState.desktopOpen);
 
   useEffect(() => {
@@ -196,7 +202,14 @@ function ChatShell({ user }: { user: Me }) {
               </Avatar>
               <span {...props(styles.accountName)}>{user.name}</span>
             </Link>
-            <AppShell.SignOutButton />
+            <AppShell.SignOutButton
+              onClick={() => {
+                player.actions.close();
+                void authClient
+                  .signOut()
+                  .then(() => queryClient.invalidateQueries({ queryKey: meQuery.queryKey }));
+              }}
+            />
           </div>
         </AppShell.Topbar>
 
@@ -228,17 +241,15 @@ function ChatShell({ user }: { user: Me }) {
                 <ChatComposer.Input />
                 <ChatComposer.EmptyHints />
                 <ChatComposer.Toolbar>
-                  <ChatComposer.ToolGroup>
-                    <ChatComposer.PickSongButton />
-                    <ChatComposer.AssistButton />
-                  </ChatComposer.ToolGroup>
+                  <ChatComposer.PickSongButton />
                   <ChatComposer.Submit />
                 </ChatComposer.Toolbar>
               </ChatComposer.Form>
             </ComposerDock.Panel>
 
             <ComposerDock.Panel mode="log">
-              <ListeningComposer.SearchCombobox />
+              <ListeningComposer.SearchPopover />
+              <ListeningComposer.Input />
             </ComposerDock.Panel>
           </ComposerDock.Surface>
         </ComposerDock.Root>
@@ -315,7 +326,7 @@ const styles = create({
       },
     },
     borderRadius: 9999,
-    transition: "background-color 150ms ease",
+    transition: `background-color 150ms ${motion.easeOut}`,
   },
   avatarSm: {
     display: "inline-flex",

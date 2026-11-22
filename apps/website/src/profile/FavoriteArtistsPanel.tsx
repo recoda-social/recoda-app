@@ -1,18 +1,25 @@
 import { props } from "@stylexjs/stylex";
 import type { StyleXStyles } from "@stylexjs/stylex";
-import { Button } from "@ui-sdk/react/button";
+import { Dialog, DialogTrigger } from "@ui-sdk/react/dialog";
 import { PlusIcon } from "#/chat/icons";
 import { artworkUrl, searchArtists } from "#/lib/musickit";
 import type { AppleArtist } from "#/lib/musickit";
 import type { FavoriteArtistItem } from "#/lib/profile";
-import { createFavoriteAddContext, EditFavoriteDialog, FavoriteDialog } from "./FavoriteDialog";
+import {
+  EditFavoriteDialog,
+  FavoriteDialogContent,
+  FavoriteDialogFooter,
+  FavoriteDialogForm,
+  FavoriteSearchSection,
+  FavoriteSelectedBox,
+  useFavoriteAddDraft,
+} from "./FavoriteDialog";
+import { FavoriteDecorationFields } from "./FavoriteDecorationEditor";
 import { FavoritePanel } from "./FavoritePanel";
 import { FavoriteRow } from "./FavoriteRow";
 import { favoriteStyles as styles } from "./favorite-styles";
 import { UserIcon } from "./icons";
 import { useProfile } from "./ProfileContext";
-
-const ArtistAddDialog = createFavoriteAddContext<AppleArtist>();
 
 function ArtistArt({
   artist,
@@ -48,89 +55,103 @@ function ArtistGenres({ artist }: { artist: AppleArtist }) {
   ) : null;
 }
 
-function AddFavoriteArtistBody() {
-  const { state } = useProfile();
-  const { state: searchState, actions: searchActions } = ArtistAddDialog.useFavoriteAdd();
-  const { selected } = searchState;
-  const existingIds = new Set(state.favoriteArtists.map((item) => item.artist.id));
-
-  return (
-    <FavoriteDialog.Form>
-      {selected ? (
-        <FavoriteDialog.SelectedBox resetLabel="別のアーティストを選ぶ">
-          <ArtistArt artist={selected} size={44} style={styles.art} roundStyle={styles.roundArt} />
-          <div {...props(styles.meta)}>
-            <span {...props(styles.title)}>{selected.attributes.name}</span>
-            <ArtistGenres artist={selected} />
-          </div>
-        </FavoriteDialog.SelectedBox>
-      ) : (
-        <FavoriteDialog.SearchSection
-          name="artist-search"
-          label="アーティストを検索"
-          placeholder="アーティスト名を入力…"
-          idleMessage="キーワードを入力してアーティストを検索してください"
-          notFoundMessage="一致するアーティストが見つかりませんでした"
-        >
-          <ul {...props(styles.resultList)} aria-label="アーティストの検索結果">
-            {searchState.results.map((artist) => {
-              const alreadyAdded = existingIds.has(artist.id);
-              return (
-                <li key={artist.id} {...props(styles.resultRow)}>
-                  <Button
-                    type="button"
-                    disabled={alreadyAdded}
-                    onClick={() => searchActions.select(artist)}
-                    {...props(styles.resultSelectBtn)}
-                  >
-                    <ArtistArt
-                      artist={artist}
-                      size={38}
-                      style={styles.resultArt}
-                      roundStyle={styles.roundResultArt}
-                    />
-                    <span {...props(styles.meta)}>
-                      <span {...props(styles.title)}>{artist.attributes.name}</span>
-                      <ArtistGenres artist={artist} />
-                    </span>
-                    {alreadyAdded ? <span {...props(styles.badge)}>登録済み</span> : null}
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-        </FavoriteDialog.SearchSection>
-      )}
-
-      {selected ? <FavoriteDialog.DecorationFields /> : null}
-
-      <FavoriteDialog.Footer idleLabel="リストに追加" savingLabel="追加中…" />
-    </FavoriteDialog.Form>
-  );
-}
-
 function AddFavoriteArtistDialog() {
   const { state, actions, meta } = useProfile();
+  const draft = useFavoriteAddDraft<AppleArtist>(searchArtists);
+  const { selected } = draft;
+
   const atLimit = state.favoriteArtists.length >= meta.favoriteLimit;
+  const existingIds = new Set(state.favoriteArtists.map((item) => item.artist.id));
+  const canSave = Boolean(selected) && draft.isDecorationValid && !state.isSavingArtists;
+
+  const handleSave = (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+    if (!canSave) {
+      return;
+    }
+    void draft.save(actions.addFavoriteArtist);
+  };
 
   return (
-    <ArtistAddDialog.AddProvider
-      searchFn={searchArtists}
-      saving={state.isSavingArtists}
-      fieldPrefix="add-artist"
-      onAdd={actions.addFavoriteArtist}
-    >
-      <FavoriteDialog.Trigger disabled={atLimit} {...props(styles.addBtn)}>
+    <Dialog open={draft.open} onOpenChange={draft.onOpenChange}>
+      <DialogTrigger disabled={atLimit} {...props(styles.addBtn)}>
         <PlusIcon />
         <span>好きなアーティストを追加</span>
-      </FavoriteDialog.Trigger>
-      <FavoriteDialog.Content
+      </DialogTrigger>
+      <FavoriteDialogContent
         title="好きなアーティストを追加"
         description={`Apple Music からアーティストを検索して、最大 ${meta.favoriteLimit} 組まで登録できます。`}
       >
-        <AddFavoriteArtistBody />
-      </FavoriteDialog.Content>
-    </ArtistAddDialog.AddProvider>
+        <FavoriteDialogForm onSubmit={handleSave}>
+          {selected ? (
+            <FavoriteSelectedBox
+              resetLabel="別のアーティストを選ぶ"
+              onReset={() => draft.setSelected(null)}
+            >
+              <ArtistArt
+                artist={selected}
+                size={44}
+                style={styles.art}
+                roundStyle={styles.roundArt}
+              />
+              <div {...props(styles.meta)}>
+                <span {...props(styles.title)}>{selected.attributes.name}</span>
+                <ArtistGenres artist={selected} />
+              </div>
+            </FavoriteSelectedBox>
+          ) : (
+            <FavoriteSearchSection
+              name="artist-search"
+              label="アーティストを検索"
+              placeholder="アーティスト名を入力…"
+              idleMessage="キーワードを入力してアーティストを検索してください"
+              notFoundMessage="一致するアーティストが見つかりませんでした"
+              search={draft.search}
+            >
+              <ul {...props(styles.resultList)} aria-label="アーティストの検索結果">
+                {draft.search.results.map((artist) => {
+                  const alreadyAdded = existingIds.has(artist.id);
+                  return (
+                    <li key={artist.id} {...props(styles.resultRow)}>
+                      <button
+                        type="button"
+                        disabled={alreadyAdded}
+                        onClick={() => draft.setSelected(artist)}
+                        {...props(styles.resultSelectBtn)}
+                      >
+                        <ArtistArt
+                          artist={artist}
+                          size={38}
+                          style={styles.resultArt}
+                          roundStyle={styles.roundResultArt}
+                        />
+                        <span {...props(styles.meta)}>
+                          <span {...props(styles.title)}>{artist.attributes.name}</span>
+                          <ArtistGenres artist={artist} />
+                        </span>
+                        {alreadyAdded ? <span {...props(styles.badge)}>登録済み</span> : null}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </FavoriteSearchSection>
+          )}
+
+          {selected ? (
+            <FavoriteDecorationFields
+              value={draft.decoration}
+              onChange={draft.setDecoration}
+              fieldPrefix="add-artist"
+            />
+          ) : null}
+
+          <FavoriteDialogFooter disabled={!canSave}>
+            {state.isSavingArtists ? "追加中…" : "リストに追加"}
+          </FavoriteDialogFooter>
+        </FavoriteDialogForm>
+      </FavoriteDialogContent>
+    </Dialog>
   );
 }
 
@@ -147,19 +168,11 @@ function FavoriteArtistRow({
   const name = item.artist.name ?? "（アーティスト名なし）";
 
   return (
-    <FavoriteRow.Root
-      color={item.color}
-      index={index}
-      total={total}
-      saving={state.isSavingArtists}
-      label={name}
-      noun="好きなアーティスト"
-      onMove={(direction) => void actions.moveFavoriteArtist(index, direction)}
-      onRemove={() => actions.removeFavoriteArtist(item.artist.id)}
-    >
+    <FavoriteRow.Root color={item.color}>
       <FavoriteRow.Main>
-        <FavoriteRow.Rank />
-        <FavoriteRow.RoundArt
+        <FavoriteRow.Rank index={index} />
+        <FavoriteRow.Art
+          shape="round"
           src={item.artist.artworkUrl}
           emoji={item.emoji}
           fallback={<UserIcon />}
@@ -181,7 +194,13 @@ function FavoriteArtistRow({
         </FavoriteRow.Meta>
 
         <FavoriteRow.Actions>
-          <FavoriteRow.MoveButtons />
+          <FavoriteRow.MoveButtons
+            label={name}
+            index={index}
+            total={total}
+            saving={state.isSavingArtists}
+            onMove={(direction) => void actions.moveFavoriteArtist(index, direction)}
+          />
           <EditFavoriteDialog
             title={name}
             initial={{ comment: item.comment, emoji: item.emoji, color: item.color }}
@@ -189,7 +208,12 @@ function FavoriteArtistRow({
             saving={state.isSavingArtists}
             onSave={(decoration) => actions.updateFavoriteArtist(item.artist.id, decoration)}
           />
-          <FavoriteRow.RemoveDialog />
+          <FavoriteRow.RemoveDialog
+            label={name}
+            noun="好きなアーティスト"
+            saving={state.isSavingArtists}
+            onRemove={() => actions.removeFavoriteArtist(item.artist.id)}
+          />
         </FavoriteRow.Actions>
       </FavoriteRow.Main>
 
