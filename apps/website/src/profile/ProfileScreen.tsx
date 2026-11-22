@@ -18,6 +18,7 @@ import { useProfile } from "./ProfileContext";
 import { ProfileHero } from "./ProfileHero";
 import { ProfilePostsPanel } from "./ProfilePostsPanel";
 import { ProfileProvider } from "./ProfileProvider";
+import { AppToasts } from "#/shell/AppToasts";
 
 function ProfileTab({ value, children }: { value: string; children: ReactNode }) {
   return (
@@ -91,6 +92,8 @@ function ProfileWorkspaceContent() {
           </Tabs>
         </div>
       </main>
+
+      <AppToasts.Viewport side="bottom" align="end" />
     </div>
   );
 }
