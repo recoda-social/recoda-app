@@ -154,6 +154,17 @@ const styles = create({
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 8,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 160ms ${motion.easeOut}, background-color 150ms ease`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
   brand: {
     display: "inline-flex",
