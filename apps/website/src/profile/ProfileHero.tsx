@@ -13,7 +13,8 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from "@ui-sdk/react/field";
 import { Input } from "@ui-sdk/react/input";
 import { Textarea } from "@ui-sdk/react/textarea";
-import { useState } from "react";
+import { createContext, use, useState } from "react";
+import type { ReactNode } from "react";
 import { CloseIcon } from "#/chat/icons";
 import { chatMedia, chatTokens as t } from "#/chat/tokens.stylex";
 import { motion } from "#/motion.stylex";
@@ -28,14 +29,47 @@ function countChars(value: string) {
   return Array.from(value.trim()).length;
 }
 
-function ProfileEditDialog() {
+type ProfileEditContextValue = {
+  state: {
+    open: boolean;
+    name: string;
+    bio: string;
+    nameError: string | null;
+    nameLength: number;
+    bioLength: number;
+    isUpdating: boolean;
+    canSubmit: boolean;
+  };
+  actions: {
+    onOpenChange: (next: boolean) => void;
+    updateName: (value: string) => void;
+    updateBio: (value: string) => void;
+    submit: (event: React.FormEvent<HTMLFormElement>) => void;
+  };
+  meta: {
+    userNameMax: number;
+    userBioMax: number;
+  };
+};
+
+const ProfileEditContext = createContext<ProfileEditContextValue | null>(null);
+
+function useProfileEdit() {
+  const value = use(ProfileEditContext);
+  if (!value) {
+    throw new Error("useProfileEdit は ProfileEditProvider の中で使う");
+  }
+  return value;
+}
+
+function ProfileEditProvider({ children }: { children: ReactNode }) {
   const { state, actions, meta } = useProfile();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(state.user.name);
   const [bio, setBio] = useState(state.user.bio ?? "");
   const [nameError, setNameError] = useState<string | null>(null);
 
-  const handleOpenChange = (next: boolean) => {
+  const onOpenChange = (next: boolean) => {
     if (next) {
       setName(state.profile?.name ?? state.user.name);
       setBio(state.profile?.bio ?? state.user.bio ?? "");
@@ -46,8 +80,10 @@ function ProfileEditDialog() {
 
   const nameLength = countChars(name);
   const bioLength = countChars(bio);
+  const canSubmit =
+    !state.isUpdatingProfile && Boolean(name.trim()) && bioLength <= meta.userBioMax;
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -61,16 +97,52 @@ function ProfileEditDialog() {
     if (bioLength > meta.userBioMax) {
       return;
     }
-    try {
-      await actions.updateProfile({ name: trimmedName, bio: bio.trim() });
-      setOpen(false);
-    } catch {
-      // エラー通知は Provider 側の toast で行う。
-    }
+    void actions
+      .updateProfile({ name: trimmedName, bio: bio.trim() })
+      .then(() => setOpen(false))
+      .catch(() => {
+        // エラー通知は Provider 側の toast で行う。
+      });
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <ProfileEditContext
+      value={{
+        state: {
+          open,
+          name,
+          bio,
+          nameError,
+          nameLength,
+          bioLength,
+          isUpdating: state.isUpdatingProfile,
+          canSubmit,
+        },
+        actions: {
+          onOpenChange,
+          updateName: (value) => {
+            setName(value);
+            setNameError(null);
+          },
+          updateBio: setBio,
+          submit,
+        },
+        meta: {
+          userNameMax: meta.userNameMax,
+          userBioMax: meta.userBioMax,
+        },
+      }}
+    >
+      {children}
+    </ProfileEditContext>
+  );
+}
+
+function ProfileEditDialogContent() {
+  const { state, actions, meta } = useProfileEdit();
+
+  return (
+    <Dialog open={state.open} onOpenChange={actions.onOpenChange}>
       <DialogTrigger {...props(styles.editBtn)}>
         <EditIcon />
         <span>プロフィールを編集</span>
@@ -89,58 +161,59 @@ function ProfileEditDialog() {
           </DialogClose>
         </div>
 
-        <form {...props(styles.form)} onSubmit={(event) => void handleSubmit(event)}>
-          <Field name="displayName" invalid={nameError ? true : undefined}>
+        <form {...props(styles.form)} onSubmit={actions.submit}>
+          <Field name="displayName" invalid={state.nameError ? true : undefined}>
             <FieldLabel {...props(styles.label)}>表示名</FieldLabel>
             <Input
-              value={name}
-              onValueChange={(value) => {
-                setName(value);
-                setNameError(null);
-              }}
+              value={state.name}
+              onValueChange={actions.updateName}
               maxLength={meta.userNameMax}
               required
               placeholder="表示名"
               {...props(styles.input)}
             />
             <FieldDescription {...props(styles.fieldHint)}>
-              {nameLength} / {meta.userNameMax}
+              {state.nameLength} / {meta.userNameMax}
             </FieldDescription>
             <FieldError match="valueMissing">表示名を入力してください</FieldError>
-            {nameError ? <FieldError match>{nameError}</FieldError> : null}
+            {state.nameError ? <FieldError match>{state.nameError}</FieldError> : null}
           </Field>
 
-          <Field name="bio" invalid={bioLength > meta.userBioMax ? true : undefined}>
+          <Field name="bio" invalid={state.bioLength > meta.userBioMax ? true : undefined}>
             <FieldLabel {...props(styles.label)}>自己紹介</FieldLabel>
             <Textarea
-              value={bio}
-              onValueChange={setBio}
+              value={state.bio}
+              onValueChange={actions.updateBio}
               rows={4}
               maxLength={meta.userBioMax}
               placeholder="よく聴くジャンルや、音楽の好みなどを書いてみましょう"
               {...props(styles.textarea)}
             />
             <FieldDescription {...props(styles.fieldHint)}>
-              {bioLength} / {meta.userBioMax}
+              {state.bioLength} / {meta.userBioMax}
             </FieldDescription>
-            {bioLength > meta.userBioMax ? (
+            {state.bioLength > meta.userBioMax ? (
               <FieldError match>自己紹介は {meta.userBioMax} 文字以内で入力してください</FieldError>
             ) : null}
           </Field>
 
           <div {...props(styles.dialogFooter)}>
             <DialogClose {...props(styles.secondaryBtn)}>キャンセル</DialogClose>
-            <Button
-              type="submit"
-              disabled={state.isUpdatingProfile || !name.trim() || bioLength > meta.userBioMax}
-              {...props(styles.primaryBtn)}
-            >
-              {state.isUpdatingProfile ? "保存中…" : "変更を保存"}
+            <Button type="submit" disabled={!state.canSubmit} {...props(styles.primaryBtn)}>
+              {state.isUpdating ? "保存中…" : "変更を保存"}
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ProfileEditDialog() {
+  return (
+    <ProfileEditProvider>
+      <ProfileEditDialogContent />
+    </ProfileEditProvider>
   );
 }
 

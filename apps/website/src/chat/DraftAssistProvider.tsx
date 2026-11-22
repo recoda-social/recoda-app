@@ -298,6 +298,9 @@ export function DraftAssistProvider({ children }: { children: ReactNode }) {
           dismiss,
           selectEmptyHintAngle,
         },
+        meta: {
+          maxAssistCount: MAX_ASSIST_SHOWN,
+        },
       }}
     >
       {children}

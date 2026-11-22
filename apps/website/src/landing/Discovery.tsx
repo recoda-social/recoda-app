@@ -199,7 +199,11 @@ function DiscoveryCard({
 }: (typeof discoveryItems)[number]) {
   return (
     <article {...props(styles.discoveryCard)}>
-      <TrackArt variant={artVariant} style={styles.discoveryArt} label={`${title} のジャケット`} />
+      <TrackArt.Labeled
+        variant={artVariant}
+        style={styles.discoveryArt}
+        label={`${title} のジャケット`}
+      />
       <h3 {...props(styles.discoveryCardTitle)}>{title}</h3>
       <p {...props(styles.discoveryCardArtist)}>{artist}</p>
       <div {...props(styles.discoveryMeta)}>

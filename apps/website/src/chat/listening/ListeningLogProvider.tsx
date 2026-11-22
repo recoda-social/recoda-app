@@ -26,6 +26,7 @@ export function ListeningLogProvider({ children }: { children: ReactNode }) {
   const [visibleYear, setVisibleYear] = useState(initialParts.year);
   const [visibleMonthIndex, setVisibleMonthIndex] = useState(initialParts.monthIndex);
   const [calendarExpanded, setCalendarExpanded] = useState(false);
+  const [shelfExpanded, setShelfExpanded] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<AppleSong>>([]);
@@ -123,6 +124,11 @@ export function ListeningLogProvider({ children }: { children: ReactNode }) {
     setSelectedDate(dateKey);
     setVisibleYear(parts.year);
     setVisibleMonthIndex(parts.monthIndex);
+    setShelfExpanded(false);
+  }, []);
+
+  const toggleShelfExpanded = useCallback(() => {
+    setShelfExpanded((prev) => !prev);
   }, []);
 
   const shiftWeek = useCallback(
@@ -211,6 +217,7 @@ export function ListeningLogProvider({ children }: { children: ReactNode }) {
           visibleYear,
           visibleMonthIndex,
           calendarExpanded,
+          shelfExpanded,
           logsByDate,
           selectedEntries,
           isLoading: query.isPending,
@@ -227,6 +234,8 @@ export function ListeningLogProvider({ children }: { children: ReactNode }) {
           shiftWeek,
           shiftMonth,
           setCalendarExpanded,
+          setShelfExpanded,
+          toggleShelfExpanded,
           setSearchQuery,
           setHighlightedIndex,
           moveHighlight,

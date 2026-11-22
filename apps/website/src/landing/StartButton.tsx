@@ -1,6 +1,6 @@
 import { create, props } from "@stylexjs/stylex";
 import type { StyleXStyles } from "@stylexjs/stylex";
-import { authClient } from "#/lib/auth-client";
+import { useAuth } from "#/auth/AuthContext";
 import { motion } from "#/motion.stylex";
 import { fontTokens } from "./tokens.stylex";
 
@@ -65,12 +65,9 @@ type StartButtonProps = {
 
 /** 「無料ではじめる」。Google でログインし、ログイン後はホーム（/）に戻る。 */
 export function StartButton({ style }: StartButtonProps) {
+  const { actions } = useAuth();
   return (
-    <button
-      type="button"
-      onClick={() => void authClient.signIn.social({ provider: "google", callbackURL: "/" })}
-      {...props(styles.primaryLink, style)}
-    >
+    <button type="button" onClick={actions.signInWithGoogle} {...props(styles.primaryLink, style)}>
       <span>無料ではじめる</span>
       <span aria-hidden="true">→</span>
     </button>

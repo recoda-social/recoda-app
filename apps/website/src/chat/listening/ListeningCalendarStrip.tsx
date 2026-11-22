@@ -73,158 +73,204 @@ function CompactCovers({ entries }: { entries: ReadonlyArray<ListeningLogView> }
   );
 }
 
-export function ListeningCalendarStrip() {
+function CalendarTopBar({
+  prevLabel,
+  nextLabel,
+  onPrev,
+  onNext,
+  toggleLabel,
+  onToggleExpand,
+}: {
+  prevLabel: string;
+  nextLabel: string;
+  onPrev: () => void;
+  onNext: () => void;
+  toggleLabel: string;
+  onToggleExpand: () => void;
+}) {
   const { state, actions } = useListeningLog();
-  const { todayKey, selectedDate, visibleYear, visibleMonthIndex, calendarExpanded, logsByDate } =
-    state;
+  const { todayKey, selectedDate, visibleYear, visibleMonthIndex } = state;
 
-  const weekCells = useMemo(
-    () => getWeekContaining(selectedDate, todayKey),
-    [selectedDate, todayKey],
+  return (
+    <div {...props(styles.topRow)}>
+      <div {...props(styles.headingGroup)}>
+        <CalendarIcon />
+        <span {...props(styles.monthText)}>
+          {formatMonthHeading(visibleYear, visibleMonthIndex)}
+        </span>
+        <div {...props(styles.navGroup)}>
+          <Button
+            type="button"
+            aria-label={prevLabel}
+            onClick={onPrev}
+            {...props(styles.navIconBtn)}
+          >
+            <ChevronLeftIcon />
+          </Button>
+          <Button
+            type="button"
+            aria-label={nextLabel}
+            onClick={onNext}
+            {...props(styles.navIconBtn)}
+          >
+            <ChevronRightIcon />
+          </Button>
+        </div>
+      </div>
+
+      <div {...props(styles.rightActions)}>
+        {selectedDate !== todayKey ? (
+          <Button
+            type="button"
+            onClick={() => actions.selectDate(todayKey)}
+            {...props(styles.actionBtn)}
+          >
+            今日
+          </Button>
+        ) : null}
+        <Button type="button" onClick={onToggleExpand} {...props(styles.actionBtn)}>
+          {toggleLabel}
+        </Button>
+      </div>
+    </div>
   );
+}
+
+function MonthCalendarView() {
+  const { state, actions } = useListeningLog();
+  const { todayKey, selectedDate, visibleYear, visibleMonthIndex, logsByDate } = state;
+
   const monthCells = useMemo(
     () => buildMonthGrid(visibleYear, visibleMonthIndex, todayKey),
     [visibleYear, visibleMonthIndex, todayKey],
   );
 
   return (
+    <>
+      <CalendarTopBar
+        prevLabel="前の月"
+        nextLabel="次の月"
+        onPrev={() => actions.shiftMonth(-1)}
+        onNext={() => actions.shiftMonth(1)}
+        toggleLabel="週表示"
+        onToggleExpand={() => actions.setCalendarExpanded(false)}
+      />
+      <div
+        {...props(styles.monthMatrix)}
+        role="grid"
+        aria-label={formatMonthHeading(visibleYear, visibleMonthIndex)}
+      >
+        {WEEKDAY_LABELS.map((label) => (
+          <span key={label} {...props(styles.matrixWeekday)}>
+            {label}
+          </span>
+        ))}
+        {monthCells.map((cell) => {
+          const entries = logsByDate.get(cell.dateKey) ?? [];
+          const isSelected = cell.dateKey === selectedDate;
+          return (
+            <button
+              key={cell.dateKey}
+              type="button"
+              aria-pressed={isSelected}
+              aria-label={`${formatJapaneseDate(cell.dateKey)}（${entries.length}曲）`}
+              onClick={() => actions.selectDate(cell.dateKey)}
+              {...props(
+                styles.matrixCell,
+                !cell.inCurrentMonth && styles.cellMuted,
+                isSelected && styles.cellSelected,
+              )}
+            >
+              <span {...props(styles.dayBadge, cell.isToday && styles.dayToday)}>{cell.day}</span>
+              <div {...props(styles.matrixVisual)}>
+                <span {...props(styles.visualDesktop)}>
+                  {entries.slice(0, 2).map((item, idx) => (
+                    <span key={item.id} {...props(idx > 0 && styles.miniOverlap)}>
+                      <CoverTile song={item.song} size={18} radius={4} />
+                    </span>
+                  ))}
+                  {entries.length > 2 ? (
+                    <span {...props(styles.extraDesktop)}>+{entries.length - 2}</span>
+                  ) : null}
+                </span>
+                <span {...props(styles.visualCompact)}>
+                  <CompactCovers entries={entries} />
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function WeekCalendarView() {
+  const { state, actions } = useListeningLog();
+  const { todayKey, selectedDate, logsByDate } = state;
+
+  const weekCells = useMemo(
+    () => getWeekContaining(selectedDate, todayKey),
+    [selectedDate, todayKey],
+  );
+
+  return (
+    <>
+      <CalendarTopBar
+        prevLabel="前の週"
+        nextLabel="次の週"
+        onPrev={() => actions.shiftWeek(-1)}
+        onNext={() => actions.shiftWeek(1)}
+        toggleLabel="月全体"
+        onToggleExpand={() => actions.setCalendarExpanded(true)}
+      />
+      <div {...props(styles.weekRow)}>
+        {weekCells.map((cell) => {
+          const entries = logsByDate.get(cell.dateKey) ?? [];
+          const isSelected = cell.dateKey === selectedDate;
+          return (
+            <button
+              key={cell.dateKey}
+              type="button"
+              aria-pressed={isSelected}
+              aria-label={`${formatJapaneseDate(cell.dateKey)}（${entries.length}曲）`}
+              onClick={() => actions.selectDate(cell.dateKey)}
+              {...props(styles.weekCell, isSelected && styles.cellSelected)}
+            >
+              <div {...props(styles.weekCellTop)}>
+                <span {...props(styles.weekDayLabel)}>{WEEKDAY_LABELS[cell.weekday]}</span>
+                <span {...props(styles.dayBadge, cell.isToday && styles.dayToday)}>{cell.day}</span>
+              </div>
+              <div {...props(styles.weekVisual)}>
+                <span {...props(styles.visualDesktop)}>
+                  {entries.slice(0, 3).map((item, idx) => (
+                    <span key={item.id} {...props(idx > 0 && styles.miniOverlap)}>
+                      <CoverTile song={item.song} size={20} radius={5} />
+                    </span>
+                  ))}
+                  {entries.length > 3 ? (
+                    <span {...props(styles.extraDesktop)}>+{entries.length - 3}</span>
+                  ) : null}
+                </span>
+                <span {...props(styles.visualCompact)}>
+                  <CompactCovers entries={entries} />
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+export function ListeningCalendarStrip() {
+  const { state } = useListeningLog();
+
+  return (
     <section {...props(styles.strip)} aria-label="聴いた曲カレンダー">
       <div {...props(styles.inner)}>
-        <div {...props(styles.topRow)}>
-          <div {...props(styles.headingGroup)}>
-            <CalendarIcon />
-            <span {...props(styles.monthText)}>
-              {formatMonthHeading(visibleYear, visibleMonthIndex)}
-            </span>
-            <div {...props(styles.navGroup)}>
-              <Button
-                type="button"
-                aria-label={calendarExpanded ? "前の月" : "前の週"}
-                onClick={() => (calendarExpanded ? actions.shiftMonth(-1) : actions.shiftWeek(-1))}
-                {...props(styles.navIconBtn)}
-              >
-                <ChevronLeftIcon />
-              </Button>
-              <Button
-                type="button"
-                aria-label={calendarExpanded ? "次の月" : "次の週"}
-                onClick={() => (calendarExpanded ? actions.shiftMonth(1) : actions.shiftWeek(1))}
-                {...props(styles.navIconBtn)}
-              >
-                <ChevronRightIcon />
-              </Button>
-            </div>
-          </div>
-
-          <div {...props(styles.rightActions)}>
-            {selectedDate !== todayKey ? (
-              <Button
-                type="button"
-                onClick={() => actions.selectDate(todayKey)}
-                {...props(styles.actionBtn)}
-              >
-                今日
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              onClick={() => actions.setCalendarExpanded(!calendarExpanded)}
-              {...props(styles.actionBtn)}
-            >
-              {calendarExpanded ? "週表示" : "月全体"}
-            </Button>
-          </div>
-        </div>
-
-        {calendarExpanded ? (
-          <div
-            {...props(styles.monthMatrix)}
-            role="grid"
-            aria-label={formatMonthHeading(visibleYear, visibleMonthIndex)}
-          >
-            {WEEKDAY_LABELS.map((label) => (
-              <span key={label} {...props(styles.matrixWeekday)}>
-                {label}
-              </span>
-            ))}
-            {monthCells.map((cell) => {
-              const entries = logsByDate.get(cell.dateKey) ?? [];
-              const isSelected = cell.dateKey === selectedDate;
-              return (
-                <button
-                  key={cell.dateKey}
-                  type="button"
-                  aria-pressed={isSelected}
-                  aria-label={`${formatJapaneseDate(cell.dateKey)}（${entries.length}曲）`}
-                  onClick={() => actions.selectDate(cell.dateKey)}
-                  {...props(
-                    styles.matrixCell,
-                    !cell.inCurrentMonth && styles.cellMuted,
-                    isSelected && styles.cellSelected,
-                  )}
-                >
-                  <span {...props(styles.dayBadge, cell.isToday && styles.dayToday)}>
-                    {cell.day}
-                  </span>
-                  <div {...props(styles.matrixVisual)}>
-                    <span {...props(styles.visualDesktop)}>
-                      {entries.slice(0, 2).map((item, idx) => (
-                        <span key={item.id} {...props(idx > 0 && styles.miniOverlap)}>
-                          <CoverTile song={item.song} size={18} radius={4} />
-                        </span>
-                      ))}
-                      {entries.length > 2 ? (
-                        <span {...props(styles.extraDesktop)}>+{entries.length - 2}</span>
-                      ) : null}
-                    </span>
-                    <span {...props(styles.visualCompact)}>
-                      <CompactCovers entries={entries} />
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <div {...props(styles.weekRow)}>
-            {weekCells.map((cell) => {
-              const entries = logsByDate.get(cell.dateKey) ?? [];
-              const isSelected = cell.dateKey === selectedDate;
-              return (
-                <button
-                  key={cell.dateKey}
-                  type="button"
-                  aria-pressed={isSelected}
-                  aria-label={`${formatJapaneseDate(cell.dateKey)}（${entries.length}曲）`}
-                  onClick={() => actions.selectDate(cell.dateKey)}
-                  {...props(styles.weekCell, isSelected && styles.cellSelected)}
-                >
-                  <div {...props(styles.weekCellTop)}>
-                    <span {...props(styles.weekDayLabel)}>{WEEKDAY_LABELS[cell.weekday]}</span>
-                    <span {...props(styles.dayBadge, cell.isToday && styles.dayToday)}>
-                      {cell.day}
-                    </span>
-                  </div>
-                  <div {...props(styles.weekVisual)}>
-                    <span {...props(styles.visualDesktop)}>
-                      {entries.slice(0, 3).map((item, idx) => (
-                        <span key={item.id} {...props(idx > 0 && styles.miniOverlap)}>
-                          <CoverTile song={item.song} size={20} radius={5} />
-                        </span>
-                      ))}
-                      {entries.length > 3 ? (
-                        <span {...props(styles.extraDesktop)}>+{entries.length - 3}</span>
-                      ) : null}
-                    </span>
-                    <span {...props(styles.visualCompact)}>
-                      <CompactCovers entries={entries} />
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {state.calendarExpanded ? <MonthCalendarView /> : <WeekCalendarView />}
       </div>
     </section>
   );

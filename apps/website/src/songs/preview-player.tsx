@@ -29,7 +29,10 @@ type PreviewPlayerContextValue = {
     authorizeAppleMusic: () => Promise<boolean>;
     unauthorizeAppleMusic: () => Promise<void>;
   };
+  meta: Record<string, never>;
 };
+
+const EMPTY_META: Record<string, never> = {};
 
 const PreviewPlayerContext = createContext<PreviewPlayerContextValue | null>(null);
 
@@ -531,6 +534,7 @@ export function PreviewPlayerProvider({ children }: { children: ReactNode }) {
           error,
         },
         actions,
+        meta: EMPTY_META,
       }}
     >
       {children}
