@@ -165,23 +165,25 @@ function MiniMonthGrid() {
           {(index) => <CalendarWeekday index={index} {...props(styles.miniWeekday)} />}
         </CalendarWeekdays>
         <CalendarWeeks>
-          {(cell) => (
-            <CalendarDay
-              value={cell.date}
-              render={(dayProps, dayState) => (
-                <button
-                  type="button"
-                  {...dayProps}
-                  {...props(
-                    styles.miniDayBtn,
-                    dayState.outside && styles.miniDayMuted,
-                    dayState.today && styles.miniDayToday,
-                    dayState.selected && styles.miniDaySelected,
-                  )}
-                />
-              )}
-            />
-          )}
+          {(cell) => {
+            const dayNum = Number(cell.date.slice(8));
+            return (
+              <CalendarDay value={cell.date} {...props(styles.miniDayTd)}>
+                {(dayState) => (
+                  <span
+                    {...props(
+                      styles.miniDayBtn,
+                      dayState.outside && styles.miniDayMuted,
+                      dayState.today && styles.miniDayToday,
+                      dayState.selected && styles.miniDaySelected,
+                    )}
+                  >
+                    {dayNum}
+                  </span>
+                )}
+              </CalendarDay>
+            );
+          }}
         </CalendarWeeks>
       </CalendarGrid>
     </Calendar>
@@ -645,6 +647,12 @@ const styles = create({
     display: "flex",
     flexDirection: "column",
     gap: 6,
+    width: "100%",
+    padding: 0,
+    backgroundColor: "transparent",
+    borderStyle: "none",
+    borderWidth: 0,
+    borderRadius: 0,
   },
   miniMonthHead: {
     display: "flex",
@@ -695,15 +703,26 @@ const styles = create({
   },
   miniGrid: {
     width: "100%",
+    tableLayout: "fixed",
     borderSpacing: 2,
     borderCollapse: "separate",
   },
   miniWeekday: {
+    width: "auto",
+    height: "auto",
     paddingBlock: 2,
     fontSize: 10.5,
     fontWeight: 600,
     color: t.muted,
     textAlign: "center",
+  },
+  miniDayTd: {
+    width: "auto",
+    height: "auto",
+    padding: 0,
+    verticalAlign: "middle",
+    backgroundColor: "transparent",
+    borderRadius: 0,
   },
   miniDayBtn: {
     display: "grid",

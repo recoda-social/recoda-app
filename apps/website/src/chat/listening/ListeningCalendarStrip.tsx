@@ -217,26 +217,23 @@ function MonthCalendarView() {
         <CalendarWeeks>
           {(cell) => {
             const entries = logsByDate.get(cell.date) ?? [];
+            const dayNum = Number(cell.date.slice(8));
             return (
               <CalendarDay
                 value={cell.date}
                 aria-label={`${formatJapaneseDate(cell.date)}（${entries.length}曲）`}
-                render={(dayProps, dayState) => (
-                  <button
-                    type="button"
-                    {...dayProps}
+                {...props(styles.matrixDayTd)}
+              >
+                {(dayState) => (
+                  <div
                     {...props(
                       styles.matrixCell,
                       dayState.outside && styles.cellMuted,
                       dayState.selected && styles.cellSelected,
                     )}
-                  />
-                )}
-              >
-                {(dayState) => (
-                  <>
+                  >
                     <span {...props(styles.dayBadge, dayState.today && styles.dayToday)}>
-                      {dayState.label}
+                      {dayNum}
                     </span>
                     <div {...props(styles.matrixVisual)}>
                       <span {...props(styles.visualDesktop)}>
@@ -253,7 +250,7 @@ function MonthCalendarView() {
                         <CompactCovers entries={entries} />
                       </span>
                     </div>
-                  </>
+                  </div>
                 )}
               </CalendarDay>
             );
@@ -385,6 +382,12 @@ const styles = create({
       default: 8,
       [chatMedia.compact]: 6,
     },
+    width: "100%",
+    padding: 0,
+    backgroundColor: "transparent",
+    borderStyle: "none",
+    borderWidth: 0,
+    borderRadius: 0,
   },
   monthText: {
     margin: 0,
@@ -535,6 +538,9 @@ const styles = create({
     borderCollapse: "separate",
   },
   matrixWeekday: {
+    width: "auto",
+    height: "auto",
+    paddingBlock: 2,
     paddingInline: 4,
     fontSize: 10.5,
     fontWeight: 600,
@@ -543,6 +549,14 @@ const styles = create({
       default: "left",
       [chatMedia.compact]: "center",
     },
+  },
+  matrixDayTd: {
+    width: "auto",
+    height: "auto",
+    padding: 0,
+    verticalAlign: "top",
+    backgroundColor: "transparent",
+    borderRadius: 0,
   },
   matrixCell: {
     display: "flex",
