@@ -1,12 +1,11 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
-import { createToaster } from "@ui-sdk/react/toast";
 import { FAVORITE_COMMENT_MAX, FAVORITE_LIMIT, USER_BIO_MAX, USER_NAME_MAX } from "db/constants";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { meQuery } from "#/lib/auth";
 import type { Me } from "#/lib/auth";
-import { AppToasts } from "#/shell/AppToasts";
+import { AppToasts, useAppToast } from "#/shell/AppToasts";
 import { catalogSongsQuery } from "#/lib/musickit";
 import type { AppleArtist, AppleSong } from "#/lib/musickit";
 import {
@@ -61,13 +60,11 @@ function moveItem<T>(items: Array<T>, index: number, direction: -1 | 1): Array<T
   return next;
 }
 
-export function ProfileProvider({ user, children }: { user: Me; children: ReactNode }) {
+function ProfileProviderContent({ user, children }: { user: Me; children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [toaster] = useState(() => createToaster({ duration: 4000 }));
+  const { actions: toaster } = useAppToast();
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [likingPostId, setLikingPostId] = useState<string | null>(null);
-
-  useEffect(() => () => toaster.dismiss(), [toaster]);
 
   const profileOptions = profileQuery(user.publicId);
   const postsOptions = authorPostsInfiniteQuery(user.publicId);
@@ -367,7 +364,14 @@ export function ProfileProvider({ user, children }: { user: Me; children: ReactN
       }}
     >
       {children}
-      <AppToasts toaster={toaster} side="bottom" align="end" />
     </ProfileContext>
+  );
+}
+
+export function ProfileProvider({ user, children }: { user: Me; children: ReactNode }) {
+  return (
+    <AppToasts.Provider>
+      <ProfileProviderContent user={user}>{children}</ProfileProviderContent>
+    </AppToasts.Provider>
   );
 }

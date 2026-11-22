@@ -1,27 +1,82 @@
 import { create, props } from "@stylexjs/stylex";
 import type { StyleXStyles } from "@stylexjs/stylex";
 import type { Toaster } from "@ui-sdk/core/toast";
-import { Toast, ToastAction, ToastDescription, ToastRegion, ToastTitle } from "@ui-sdk/react/toast";
+import {
+  createToaster,
+  Toast,
+  ToastAction,
+  ToastDescription,
+  ToastRegion,
+  ToastTitle,
+} from "@ui-sdk/react/toast";
+import { createContext, use, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { chatMedia, chatTokens as t } from "#/chat/tokens.stylex";
 import { motion } from "#/motion.stylex";
 
-type AppToastsProps = {
+type AppToastState = Record<string, never>;
+
+type AppToastActions = {
+  success: (title: string) => void;
+  error: (title: string) => void;
+  dismiss: () => void;
+};
+
+type AppToastMeta = {
   toaster: Toaster<ReactNode>;
+};
+
+export type AppToastContextValue = {
+  state: AppToastState;
+  actions: AppToastActions;
+  meta: AppToastMeta;
+};
+
+const EMPTY_STATE: AppToastState = {};
+
+const AppToastContext = createContext<AppToastContextValue | null>(null);
+
+export function useAppToast() {
+  const value = use(AppToastContext);
+  if (!value) {
+    throw new Error("useAppToast は AppToasts.Provider の中で使う");
+  }
+  return value;
+}
+
+function Provider({ duration = 4000, children }: { duration?: number; children: ReactNode }) {
+  const [toaster] = useState(() => createToaster({ duration }));
+
+  useEffect(() => () => toaster.dismiss(), [toaster]);
+
+  const actions = useMemo<AppToastActions>(
+    () => ({
+      success: (title) => toaster.success(title),
+      error: (title) => toaster.error(title),
+      dismiss: () => toaster.dismiss(),
+    }),
+    [toaster],
+  );
+
+  const meta = useMemo<AppToastMeta>(() => ({ toaster }), [toaster]);
+
+  return (
+    <AppToastContext value={{ state: EMPTY_STATE, actions, meta }}>{children}</AppToastContext>
+  );
+}
+
+type ViewportProps = {
   side?: "top" | "bottom";
   align?: "start" | "center" | "end";
   regionStyle?: StyleXStyles;
 };
 
-export function AppToasts({
-  toaster,
-  side = "bottom",
-  align = "end",
-  regionStyle,
-}: AppToastsProps) {
+function Viewport({ side = "bottom", align = "end", regionStyle }: ViewportProps) {
+  const { meta } = useAppToast();
+
   return (
     <ToastRegion
-      toaster={toaster}
+      toaster={meta.toaster}
       data-agent-hidden=""
       side={side}
       align={align}
@@ -39,6 +94,11 @@ export function AppToasts({
     </ToastRegion>
   );
 }
+
+export const AppToasts = {
+  Provider,
+  Viewport,
+};
 
 const styles = create({
   toast: {
