@@ -11,7 +11,7 @@ import {
 } from "@ui-sdk/react/dialog";
 import { Field, FieldLabel } from "@ui-sdk/react/field";
 import { Input } from "@ui-sdk/react/input";
-import { createContext, use, useEffect, useState } from "react";
+import { createContext, use, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { CloseIcon } from "#/chat/icons";
 import type { FavoriteDecoration } from "#/lib/profile";
@@ -125,6 +125,7 @@ export function createFavoriteAddContext<T>() {
     const [results, setResults] = useState<Array<T>>([]);
     const [searching, setSearching] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const savedScrollYRef = useRef<number | null>(null);
 
     const trimmedQuery = open ? query.trim() : "";
 
@@ -163,15 +164,29 @@ export function createFavoriteAddContext<T>() {
     }, [trimmedQuery, searchFn]);
 
     const onOpenChange = (next: boolean) => {
-      if (!next) {
+      if (next) {
+        savedScrollYRef.current = window.scrollY;
+      } else {
         setQuery("");
         setResults([]);
         setSearching(false);
         setError(null);
         setSelected(null);
         setDecoration(EMPTY_DECORATION);
+        if (savedScrollYRef.current !== null) {
+          const targetY = savedScrollYRef.current;
+          requestAnimationFrame(() => window.scrollTo(0, targetY));
+        }
       }
       setOpen(next);
+    };
+
+    const onOpenChangeComplete = (isOpen: boolean) => {
+      if (!isOpen && savedScrollYRef.current !== null) {
+        const targetY = savedScrollYRef.current;
+        savedScrollYRef.current = null;
+        window.scrollTo(0, targetY);
+      }
     };
 
     const { emojiError, commentError } = validateDecoration(decoration);
@@ -220,7 +235,12 @@ export function createFavoriteAddContext<T>() {
               meta: EMPTY_META,
             }}
           >
-            <Dialog open={open} onOpenChange={onOpenChange}>
+            <Dialog
+              open={open}
+              onOpenChange={onOpenChange}
+              onOpenChangeComplete={onOpenChangeComplete}
+              modal="trap-focus"
+            >
               {children}
             </Dialog>
           </ItemContext>
@@ -248,12 +268,25 @@ function EditProvider({
 }) {
   const [open, setOpen] = useState(false);
   const [decoration, setDecoration] = useState<FavoriteDecoration>(initial);
+  const savedScrollYRef = useRef<number | null>(null);
 
   const onOpenChange = (next: boolean) => {
     if (next) {
+      savedScrollYRef.current = window.scrollY;
       setDecoration(initial);
+    } else if (savedScrollYRef.current !== null) {
+      const targetY = savedScrollYRef.current;
+      requestAnimationFrame(() => window.scrollTo(0, targetY));
     }
     setOpen(next);
+  };
+
+  const onOpenChangeComplete = (isOpen: boolean) => {
+    if (!isOpen && savedScrollYRef.current !== null) {
+      const targetY = savedScrollYRef.current;
+      savedScrollYRef.current = null;
+      window.scrollTo(0, targetY);
+    }
   };
 
   const { emojiError, commentError } = validateDecoration(decoration);
@@ -279,7 +312,12 @@ function EditProvider({
         meta: { fieldPrefix },
       }}
     >
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog
+        open={open}
+        onOpenChange={onOpenChange}
+        onOpenChangeComplete={onOpenChangeComplete}
+        modal="trap-focus"
+      >
         {children}
       </Dialog>
     </FavoriteDialogContext>
@@ -292,7 +330,7 @@ function Content({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
 }) {
   return (
@@ -302,7 +340,9 @@ function Content({
         <div {...props(styles.dialogHeader)}>
           <div {...props(styles.dialogHeading)}>
             <DialogTitle {...props(styles.dialogTitle)}>{title}</DialogTitle>
-            <DialogDescription {...props(styles.dialogDesc)}>{description}</DialogDescription>
+            {description ? (
+              <DialogDescription {...props(styles.dialogDesc)}>{description}</DialogDescription>
+            ) : null}
           </div>
           <DialogClose aria-label="閉じる" {...props(styles.closeBtn)}>
             <CloseIcon />
@@ -387,7 +427,7 @@ function SearchSection({
   return (
     <div {...props(styles.searchSection)}>
       <Field name={name}>
-        <FieldLabel {...props(styles.label)}>{label}</FieldLabel>
+        <FieldLabel {...props(styles.srOnly)}>{label}</FieldLabel>
         <div {...props(styles.searchInputWrap)}>
           <span {...props(styles.searchIcon)} aria-hidden="true">
             <SearchIcon />
@@ -395,6 +435,7 @@ function SearchSection({
           <Input
             value={query}
             onValueChange={actions.setQuery}
+            enterKeyHint="search"
             placeholder={placeholder}
             {...props(styles.searchInput)}
           />

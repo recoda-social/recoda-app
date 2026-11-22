@@ -13,7 +13,7 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from "@ui-sdk/react/field";
 import { Input } from "@ui-sdk/react/input";
 import { Textarea } from "@ui-sdk/react/textarea";
-import { createContext, use, useState } from "react";
+import { createContext, use, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { CloseIcon } from "#/chat/icons";
 import { chatMedia, chatTokens as t } from "#/chat/tokens.stylex";
@@ -42,6 +42,7 @@ type ProfileEditContextValue = {
   };
   actions: {
     onOpenChange: (next: boolean) => void;
+    onOpenChangeComplete: (open: boolean) => void;
     updateName: (value: string) => void;
     updateBio: (value: string) => void;
     submit: (event: React.FormEvent<HTMLFormElement>) => void;
@@ -68,14 +69,27 @@ function ProfileEditProvider({ children }: { children: ReactNode }) {
   const [name, setName] = useState(state.user.name);
   const [bio, setBio] = useState(state.user.bio ?? "");
   const [nameError, setNameError] = useState<string | null>(null);
+  const savedScrollYRef = useRef<number | null>(null);
 
   const onOpenChange = (next: boolean) => {
     if (next) {
+      savedScrollYRef.current = window.scrollY;
       setName(state.profile?.name ?? state.user.name);
       setBio(state.profile?.bio ?? state.user.bio ?? "");
       setNameError(null);
+    } else if (savedScrollYRef.current !== null) {
+      const targetY = savedScrollYRef.current;
+      requestAnimationFrame(() => window.scrollTo(0, targetY));
     }
     setOpen(next);
+  };
+
+  const onOpenChangeComplete = (isOpen: boolean) => {
+    if (!isOpen && savedScrollYRef.current !== null) {
+      const targetY = savedScrollYRef.current;
+      savedScrollYRef.current = null;
+      window.scrollTo(0, targetY);
+    }
   };
 
   const nameLength = countChars(name);
@@ -120,6 +134,7 @@ function ProfileEditProvider({ children }: { children: ReactNode }) {
         },
         actions: {
           onOpenChange,
+          onOpenChangeComplete,
           updateName: (value) => {
             setName(value);
             setNameError(null);
@@ -142,7 +157,12 @@ function ProfileEditDialogContent() {
   const { state, actions, meta } = useProfileEdit();
 
   return (
-    <Dialog open={state.open} onOpenChange={actions.onOpenChange}>
+    <Dialog
+      open={state.open}
+      onOpenChange={actions.onOpenChange}
+      onOpenChangeComplete={actions.onOpenChangeComplete}
+      modal="trap-focus"
+    >
       <DialogTrigger {...props(styles.editBtn)}>
         <EditIcon />
         <span>プロフィールを編集</span>
@@ -169,6 +189,7 @@ function ProfileEditDialogContent() {
               onValueChange={actions.updateName}
               maxLength={meta.userNameMax}
               required
+              enterKeyHint="next"
               placeholder="表示名"
               {...props(styles.input)}
             />
@@ -470,8 +491,34 @@ const styles = create({
     },
   },
   dialog: {
+    top: {
+      default: 0,
+      [chatMedia.compact]: "max(12px, env(safe-area-inset-top, 0px))",
+    },
+    bottom: {
+      default: 0,
+      [chatMedia.compact]: "auto",
+    },
     width: "min(480px, calc(100vw - 24px))",
-    padding: 20,
+    maxHeight: "min(84dvh, 720px)",
+    paddingBlock: {
+      default: 20,
+      [chatMedia.compact]: 14,
+    },
+    paddingInline: {
+      default: 20,
+      [chatMedia.compact]: 16,
+    },
+    marginTop: {
+      default: "auto",
+      [chatMedia.compact]: 0,
+    },
+    marginBottom: {
+      default: "auto",
+      [chatMedia.compact]: 0,
+    },
+    overflowY: "auto",
+    overscrollBehavior: "contain",
     color: t.text,
     backgroundColor: t.surfaceElevated,
     borderColor: t.border,
@@ -488,9 +535,12 @@ const styles = create({
         default: "scale(0.96)",
         [chatMedia.reducedMotion]: "none",
       },
-      default: "scale(1)",
+      default: "none",
     },
-    transformOrigin: "center",
+    transformOrigin: {
+      default: "center",
+      [chatMedia.compact]: "top center",
+    },
     transition: {
       default: `opacity 200ms ${motion.easeOut}, transform 200ms ${motion.easeOut}`,
       [chatMedia.reducedMotion]: "opacity 150ms ease",
@@ -501,7 +551,10 @@ const styles = create({
     gap: 12,
     alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: {
+      default: 16,
+      [chatMedia.compact]: 10,
+    },
   },
   dialogHeading: {
     display: "flex",
@@ -516,7 +569,10 @@ const styles = create({
   },
   dialogDesc: {
     margin: 0,
-    fontSize: 13,
+    fontSize: {
+      default: 13,
+      [chatMedia.compact]: 12,
+    },
     color: t.muted,
   },
   closeBtn: {
@@ -534,15 +590,30 @@ const styles = create({
         default: "transparent",
         [chatMedia.hover]: t.hover,
       },
+      ":active": t.hover,
     },
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 9999,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.95)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, background-color 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: 16,
+    gap: {
+      default: 16,
+      [chatMedia.compact]: 10,
+    },
   },
   label: {
     fontSize: 13,
@@ -554,7 +625,10 @@ const styles = create({
     height: 38,
     paddingBlock: 0,
     paddingInline: 12,
-    fontSize: 14,
+    fontSize: {
+      default: 14,
+      [chatMedia.touch]: 16,
+    },
     color: t.text,
     backgroundColor: t.surface,
     borderColor: t.border,
@@ -564,10 +638,20 @@ const styles = create({
   },
   textarea: {
     width: "100%",
-    paddingBlock: 10,
+    maxHeight: {
+      default: null,
+      [chatMedia.compact]: 88,
+    },
+    paddingBlock: {
+      default: 10,
+      [chatMedia.compact]: 8,
+    },
     paddingInline: 12,
     fontFamily: "inherit",
-    fontSize: 14,
+    fontSize: {
+      default: 14,
+      [chatMedia.touch]: 16,
+    },
     lineHeight: 1.55,
     color: t.text,
     resize: "vertical",
@@ -602,11 +686,23 @@ const styles = create({
         default: "transparent",
         [chatMedia.hover]: t.hover,
       },
+      ":active": t.hover,
     },
     borderColor: t.border,
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 10,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, background-color 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
   primaryBtn: {
     height: 36,
@@ -626,6 +722,17 @@ const styles = create({
     opacity: {
       default: 1,
       ":disabled": 0.4,
+    },
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, opacity 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "opacity 120ms ease",
     },
   },
 });

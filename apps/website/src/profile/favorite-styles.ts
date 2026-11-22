@@ -214,6 +214,7 @@ export const favoriteStyles = create({
         default: "transparent",
         [chatMedia.hover]: t.hover,
       },
+      ":active": t.hover,
     },
     borderStyle: "none",
     borderWidth: 0,
@@ -221,6 +222,17 @@ export const favoriteStyles = create({
     opacity: {
       default: 1,
       ":disabled": 0.3,
+    },
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.95)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, background-color 140ms ${motion.easeOut}, color 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease, color 120ms ease",
     },
   },
   deleteBtn: {
@@ -244,10 +256,22 @@ export const favoriteStyles = create({
         default: "transparent",
         [chatMedia.hover]: t.hover,
       },
+      ":active": t.hover,
     },
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 8,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.95)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, background-color 140ms ${motion.easeOut}, color 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease, color 120ms ease",
+    },
   },
   comment: {
     paddingLeft: 34,
@@ -273,10 +297,34 @@ export const favoriteStyles = create({
     },
   },
   dialog: {
+    top: {
+      default: 0,
+      [chatMedia.compact]: "max(12px, env(safe-area-inset-top, 0px))",
+    },
+    bottom: {
+      default: 0,
+      [chatMedia.compact]: "auto",
+    },
     width: "min(520px, calc(100vw - 24px))",
     maxHeight: "min(84dvh, 720px)",
-    padding: 20,
+    paddingBlock: {
+      default: 20,
+      [chatMedia.compact]: 14,
+    },
+    paddingInline: {
+      default: 20,
+      [chatMedia.compact]: 16,
+    },
+    marginTop: {
+      default: "auto",
+      [chatMedia.compact]: 0,
+    },
+    marginBottom: {
+      default: "auto",
+      [chatMedia.compact]: 0,
+    },
     overflowY: "auto",
+    overscrollBehavior: "contain",
     color: t.text,
     backgroundColor: t.surfaceElevated,
     borderColor: t.border,
@@ -293,9 +341,12 @@ export const favoriteStyles = create({
         default: "scale(0.96)",
         [chatMedia.reducedMotion]: "none",
       },
-      default: "scale(1)",
+      default: "none",
     },
-    transformOrigin: "center",
+    transformOrigin: {
+      default: "center",
+      [chatMedia.compact]: "top center",
+    },
     transition: {
       default: `opacity 200ms ${motion.easeOut}, transform 200ms ${motion.easeOut}`,
       [chatMedia.reducedMotion]: "opacity 150ms ease",
@@ -320,7 +371,7 @@ export const favoriteStyles = create({
         default: "scale(0.96)",
         [chatMedia.reducedMotion]: "none",
       },
-      default: "scale(1)",
+      default: "none",
     },
     transformOrigin: "center",
     transition: {
@@ -331,9 +382,12 @@ export const favoriteStyles = create({
   dialogHeader: {
     display: "flex",
     gap: 12,
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: {
+      default: 14,
+      [chatMedia.compact]: 10,
+    },
   },
   dialogHeading: {
     display: "flex",
@@ -366,15 +420,30 @@ export const favoriteStyles = create({
         default: "transparent",
         [chatMedia.hover]: t.hover,
       },
+      ":active": t.hover,
     },
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 9999,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.95)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, background-color 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: 16,
+    gap: {
+      default: 16,
+      [chatMedia.compact]: 12,
+    },
   },
   selectedBox: {
     display: "flex",
@@ -392,10 +461,16 @@ export const favoriteStyles = create({
     flexDirection: "column",
     gap: 8,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: t.text,
+  srOnly: {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    padding: 0,
+    margin: -1,
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    borderWidth: 0,
+    clipPath: "inset(50%)",
   },
   searchInputWrap: {
     position: "relative",
@@ -417,7 +492,10 @@ export const favoriteStyles = create({
     paddingRight: 12,
     paddingBottom: 0,
     paddingLeft: 36,
-    fontSize: 14,
+    fontSize: {
+      default: 14,
+      [chatMedia.touch]: 16,
+    },
     color: t.text,
     backgroundColor: t.surface,
     borderColor: t.border,
@@ -433,10 +511,14 @@ export const favoriteStyles = create({
     display: "flex",
     flexDirection: "column",
     gap: 4,
-    maxHeight: 260,
+    maxHeight: {
+      default: 320,
+      [chatMedia.compact]: 280,
+    },
     padding: 0,
     margin: 0,
     overflowY: "auto",
+    overscrollBehavior: "contain",
     listStyle: "none",
   },
   resultRow: {
@@ -464,6 +546,7 @@ export const favoriteStyles = create({
         default: "transparent",
         [chatMedia.hover]: t.hover,
       },
+      ":active": t.hover,
     },
     borderStyle: "none",
     borderWidth: 0,
@@ -472,6 +555,7 @@ export const favoriteStyles = create({
       default: 1,
       ":disabled": 0.5,
     },
+    transition: `background-color 140ms ${motion.easeOut}`,
   },
   badge: {
     flexShrink: 0,
@@ -499,11 +583,29 @@ export const favoriteStyles = create({
     fontWeight: 500,
     color: t.text,
     cursor: "pointer",
-    backgroundColor: "transparent",
+    backgroundColor: {
+      default: "transparent",
+      ":hover": {
+        default: "transparent",
+        [chatMedia.hover]: t.hover,
+      },
+      ":active": t.hover,
+    },
     borderColor: t.border,
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 10,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, background-color 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
   secondaryBtnSm: {
     flexShrink: 0,
@@ -514,11 +616,29 @@ export const favoriteStyles = create({
     fontWeight: 500,
     color: t.text,
     cursor: "pointer",
-    backgroundColor: t.surfaceElevated,
+    backgroundColor: {
+      default: t.surfaceElevated,
+      ":hover": {
+        default: t.surfaceElevated,
+        [chatMedia.hover]: t.hover,
+      },
+      ":active": t.hover,
+    },
     borderColor: t.border,
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 8,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, background-color 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
   primaryBtn: {
     height: 36,
@@ -539,6 +659,17 @@ export const favoriteStyles = create({
       default: 1,
       ":disabled": 0.4,
     },
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, opacity 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "opacity 120ms ease",
+    },
   },
   dangerBtn: {
     height: 36,
@@ -552,6 +683,17 @@ export const favoriteStyles = create({
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 10,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "none",
+    },
   },
   stateBox: {
     paddingBlock: 40,
