@@ -1,6 +1,5 @@
 import { create, props } from "@stylexjs/stylex";
 import { Button } from "@ui-sdk/react/button";
-import { Textarea } from "@ui-sdk/react/textarea";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { artworkUrl } from "#/lib/musickit";
@@ -145,7 +144,7 @@ function Input() {
   }, [state.draft, state.selectedSong, keyboardOpen, compact]);
 
   return (
-    <Textarea
+    <textarea
       ref={handleTextareaRef}
       {...props(styles.textarea)}
       aria-label={text.label}
@@ -170,7 +169,7 @@ function Input() {
         compositionEndedAtRef.current = performance.now();
         actions.setComposing(false);
       }}
-      onValueChange={(value) => actions.updateDraft(value)}
+      onChange={(event) => actions.updateDraft(event.currentTarget.value)}
       onKeyDown={(event) => {
         if (menuOpen) {
           if (event.key === "Escape") {

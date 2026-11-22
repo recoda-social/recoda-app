@@ -1,37 +1,12 @@
 import { create, props } from "@stylexjs/stylex";
 import { Button } from "@ui-sdk/react/button";
 import {
-  Calendar,
-  CalendarDay,
-  CalendarGrid,
-  CalendarHeading,
-  CalendarNext,
-  CalendarPrevious,
-  CalendarWeekday,
-  CalendarWeekdays,
-  CalendarWeeks,
-} from "@ui-sdk/react/calendar";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxStatus,
-} from "@ui-sdk/react/combobox";
-import {
   Popover,
   PopoverClose,
   PopoverContent,
   PopoverTitle,
   PopoverTrigger,
 } from "@ui-sdk/react/popover";
-import {
-  SegmentedControl,
-  SegmentedControlIndicator,
-  SegmentedControlItem,
-} from "@ui-sdk/react/segmented-control";
 import { createContext, use, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { artworkUrl } from "#/lib/musickit";
@@ -51,21 +26,29 @@ import { useChat } from "../ChatContext";
 import { chatMedia, chatPopover, chatTokens as t } from "../tokens.stylex";
 import { useComposerPopoverHeight } from "../use-composer-popover-height";
 import { BottomSheetDrawer } from "./BottomSheetDrawer";
-import { formatJapaneseDate, shiftDateKey } from "./calendar-utils";
+import {
+  buildMonthGrid,
+  formatJapaneseDate,
+  formatMonthHeading,
+  parseDateKey,
+  shiftDateKey,
+  WEEKDAY_LABELS,
+} from "./calendar-utils";
 import { useListeningLog } from "./ListeningLogContext";
 
 type TargetDatePickerContextValue = {
   state: {
     open: boolean;
     selectedDate: string;
-    todayKey: string;
-    pickerMonth: string;
+    pickerYear: number;
+    pickerMonth: number;
+    cells: ReturnType<typeof buildMonthGrid>;
     quickDayItems: ReadonlyArray<{ label: string; key: string }>;
   };
   actions: {
     onOpenChange: (nextOpen: boolean) => void;
     pickDate: (dateKey: string) => void;
-    setPickerMonth: (month: string) => void;
+    shiftPickerMonth: (delta: number) => void;
   };
   meta: {
     triggerLabel: string;
@@ -86,10 +69,16 @@ function TargetDatePickerProvider({ children }: { children: ReactNode }) {
   const { state, actions } = useListeningLog();
   const { selectedDate, todayKey } = state;
   const [open, setOpen] = useState(false);
-  const [pickerMonth, setPickerMonth] = useState(() => selectedDate.slice(0, 7));
+  const initial = parseDateKey(selectedDate);
+  const [pickerYear, setPickerYear] = useState(initial.year);
+  const [pickerMonth, setPickerMonth] = useState(initial.monthIndex);
 
   const yesterdayKey = shiftDateKey(todayKey, -1);
   const twoDaysAgoKey = shiftDateKey(todayKey, -2);
+  const cells = useMemo(
+    () => buildMonthGrid(pickerYear, pickerMonth, todayKey),
+    [pickerYear, pickerMonth, todayKey],
+  );
 
   const quickDayItems = useMemo(
     () => [
@@ -105,10 +94,18 @@ function TargetDatePickerProvider({ children }: { children: ReactNode }) {
     setOpen(false);
   };
 
+  const shiftPickerMonth = (delta: number) => {
+    const next = new Date(pickerYear, pickerMonth + delta, 1);
+    setPickerYear(next.getFullYear());
+    setPickerMonth(next.getMonth());
+  };
+
   const onOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
     if (nextOpen) {
-      setPickerMonth(selectedDate.slice(0, 7));
+      const parts = parseDateKey(selectedDate);
+      setPickerYear(parts.year);
+      setPickerMonth(parts.monthIndex);
     }
   };
 
@@ -117,8 +114,8 @@ function TargetDatePickerProvider({ children }: { children: ReactNode }) {
   return (
     <TargetDatePickerContext
       value={{
-        state: { open, selectedDate, todayKey, pickerMonth, quickDayItems },
-        actions: { onOpenChange, pickDate, setPickerMonth },
+        state: { open, selectedDate, pickerYear, pickerMonth, cells, quickDayItems },
+        actions: { onOpenChange, pickDate, shiftPickerMonth },
         meta: { triggerLabel },
       }}
     >
@@ -131,62 +128,59 @@ function MiniMonthGrid() {
   const { state, actions } = useTargetDatePicker();
 
   return (
-    <Calendar
-      mode="single"
-      locale="ja-JP"
-      weekStartsOn={0}
-      fixedWeeks
-      showOutsideDays
-      today={state.todayKey}
-      value={state.selectedDate}
-      onValueChange={(next) => {
-        if (typeof next === "string") {
-          actions.pickDate(next);
-        }
-      }}
-      month={state.pickerMonth}
-      onMonthChange={(next) => actions.setPickerMonth(next)}
-      {...props(styles.miniCalendar)}
-    >
+    <>
       <div {...props(styles.miniMonthHead)}>
-        <CalendarHeading {...props(styles.miniMonthTitle)} />
+        <span {...props(styles.miniMonthTitle)}>
+          {formatMonthHeading(state.pickerYear, state.pickerMonth)}
+        </span>
         <div {...props(styles.miniMonthNav)}>
-          <CalendarPrevious aria-label="前の月" {...props(styles.miniNavBtn)}>
+          <Button
+            type="button"
+            aria-label="前の月"
+            onClick={() => actions.shiftPickerMonth(-1)}
+            {...props(styles.miniNavBtn)}
+          >
             <ChevronLeftIcon />
-          </CalendarPrevious>
-          <CalendarNext aria-label="次の月" {...props(styles.miniNavBtn)}>
+          </Button>
+          <Button
+            type="button"
+            aria-label="次の月"
+            onClick={() => actions.shiftPickerMonth(1)}
+            {...props(styles.miniNavBtn)}
+          >
             <ChevronRightIcon />
-          </CalendarNext>
+          </Button>
         </div>
       </div>
 
-      <CalendarGrid {...props(styles.miniGrid)}>
-        <CalendarWeekdays>
-          {(index) => <CalendarWeekday index={index} {...props(styles.miniWeekday)} />}
-        </CalendarWeekdays>
-        <CalendarWeeks>
-          {(cell) => {
-            const dayNum = Number(cell.date.slice(8));
-            return (
-              <CalendarDay value={cell.date} {...props(styles.miniDayTd)}>
-                {(dayState) => (
-                  <span
-                    {...props(
-                      styles.miniDayBtn,
-                      dayState.outside && styles.miniDayMuted,
-                      dayState.today && styles.miniDayToday,
-                      dayState.selected && styles.miniDaySelected,
-                    )}
-                  >
-                    {dayNum}
-                  </span>
-                )}
-              </CalendarDay>
-            );
-          }}
-        </CalendarWeeks>
-      </CalendarGrid>
-    </Calendar>
+      <div {...props(styles.miniGrid)}>
+        {WEEKDAY_LABELS.map((w) => (
+          <span key={w} {...props(styles.miniWeekday)}>
+            {w}
+          </span>
+        ))}
+        {state.cells.map((cell) => {
+          const isSelected = cell.dateKey === state.selectedDate;
+          return (
+            <button
+              key={cell.dateKey}
+              type="button"
+              aria-pressed={isSelected}
+              aria-label={formatJapaneseDate(cell.dateKey)}
+              onClick={() => actions.pickDate(cell.dateKey)}
+              {...props(
+                styles.miniDayBtn,
+                !cell.inCurrentMonth && styles.miniDayMuted,
+                cell.isToday && styles.miniDayToday,
+                isSelected && styles.miniDaySelected,
+              )}
+            >
+              {cell.day}
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -271,23 +265,12 @@ function TargetDatePickerPill() {
   );
 }
 
-function SearchCombobox() {
+function SearchPopover() {
   const { state, actions, meta } = useListeningLog();
   const chat = useChat();
-  const { searchQuery, searchResults, searchLoading, isSaving } = state;
-  const { registerInput } = actions;
+  const { searchQuery, searchResults, searchLoading, highlightedIndex } = state;
 
   const showResults = searchQuery.trim().length > 0;
-  const visibleSongs = useMemo(() => searchResults.slice(0, 8), [searchResults]);
-  const comboboxItems = useMemo(
-    () =>
-      visibleSongs.map((song) => ({
-        value: song.id,
-        label: song.attributes.name,
-        disabled: !song.attributes.isrc,
-      })),
-    [visibleSongs],
-  );
   const maxHeight = useComposerPopoverHeight({
     open: showResults,
     keyboardOpen: chat.state.keyboardOpen,
@@ -295,79 +278,44 @@ function SearchCombobox() {
     composerRef: chat.meta.composerRef,
   });
 
-  return (
-    <Combobox
-      items={comboboxItems}
-      filter={false}
-      autoHighlight
-      status={searchLoading ? "loading" : "idle"}
-      query={searchQuery}
-      onQueryChange={(nextQuery) => actions.setSearchQuery(nextQuery)}
-      open={showResults}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          actions.setSearchQuery("");
-        }
-      }}
-      value={null}
-      onValueChange={(nextValue) => {
-        if (typeof nextValue !== "string") {
-          return;
-        }
-        const song = visibleSongs.find((item) => item.id === nextValue);
-        if (!song) {
-          return;
-        }
-        actions.addSong(song);
-        if (window.matchMedia("(pointer: fine)").matches) {
-          meta.inputRef.current?.focus();
-        }
-      }}
-    >
-      <div {...props(styles.logInputRow)}>
-        <SearchIcon />
-        <ComboboxInput
-          ref={registerInput}
-          enterKeyHint="search"
-          aria-label="聴いた曲を検索して追加"
-          placeholder={isSaving ? "記録を保存中…" : "曲名・アーティスト名で検索して追加（複数OK）…"}
-          {...props(styles.logInput)}
-        />
-      </div>
+  if (!showResults) {
+    return null;
+  }
 
-      <ComboboxContent
-        side="top"
-        align="start"
-        sideOffset={chatPopover.sideOffset}
-        {...props(styles.searchPopover, styles.searchPopoverMaxHeight(maxHeight))}
-      >
-        <ComboboxStatus {...props(styles.statusText)}>
-          {(statusState) => (statusState.loading ? "曲を検索中…" : null)}
-        </ComboboxStatus>
-        <ComboboxEmpty {...props(styles.statusText)}>
-          {(emptyState) =>
-            emptyState.empty && !emptyState.loading ? "一致する曲が見つかりません" : null
-          }
-        </ComboboxEmpty>
-        <ComboboxList aria-label="聴いた曲の検索候補" {...props(styles.searchList)}>
-          {visibleSongs.map((song) => {
+  return (
+    <div
+      {...props(styles.searchPopover, styles.searchPopoverMaxHeight(maxHeight))}
+      role="listbox"
+      aria-label="聴いた曲の検索候補"
+    >
+      <div {...props(styles.searchList)}>
+        {searchLoading ? (
+          <div {...props(styles.statusText)}>曲を検索中…</div>
+        ) : searchResults.length === 0 ? (
+          <div {...props(styles.statusText)}>一致する曲が見つかりません</div>
+        ) : (
+          searchResults.slice(0, 8).map((song, idx) => {
             const { name, artistName, artwork, isrc } = song.attributes;
             const disabled = !isrc;
             return (
-              <ComboboxItem
+              <button
                 key={song.id}
-                value={song.id}
-                label={name}
+                type="button"
+                role="option"
                 disabled={disabled}
-                render={(itemProps, itemState) => (
-                  <div
-                    {...itemProps}
-                    {...props(
-                      styles.resultRow,
-                      itemState.highlighted && styles.resultRowActive,
-                      itemState.disabled && styles.resultRowDisabled,
-                    )}
-                  />
+                aria-selected={idx === highlightedIndex}
+                onMouseEnter={() => actions.setHighlightedIndex(idx)}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  actions.addSong(song);
+                  if (window.matchMedia("(pointer: fine)").matches) {
+                    meta.inputRef.current?.focus();
+                  }
+                }}
+                {...props(
+                  styles.resultRow,
+                  idx === highlightedIndex && styles.resultRowActive,
+                  disabled && styles.resultRowDisabled,
                 )}
               >
                 {artwork ? (
@@ -397,25 +345,25 @@ function SearchCombobox() {
                     </>
                   )}
                 </span>
-              </ComboboxItem>
+              </button>
             );
-          })}
-        </ComboboxList>
+          })
+        )}
+      </div>
 
-        {chat.state.keyboardOpen && visibleSongs.length > 0 ? (
-          <div {...props(styles.searchFooter)}>
-            <Button
-              type="button"
-              aria-label="キーボードを閉じて検索結果を広く表示する"
-              onClick={() => meta.inputRef.current?.blur()}
-              {...props(styles.expandResultsBtn)}
-            >
-              検索結果を広く表示
-            </Button>
-          </div>
-        ) : null}
-      </ComboboxContent>
-    </Combobox>
+      {chat.state.keyboardOpen && searchResults.length > 0 ? (
+        <div {...props(styles.searchFooter)}>
+          <Button
+            type="button"
+            aria-label="キーボードを閉じて検索結果を広く表示する"
+            onClick={() => meta.inputRef.current?.blur()}
+            {...props(styles.expandResultsBtn)}
+          >
+            検索結果を広く表示
+          </Button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -424,60 +372,89 @@ function ModeSwitch() {
   const { composerMode } = state;
 
   return (
-    <SegmentedControl
-      aria-label="入力モード"
-      value={composerMode}
-      onValueChange={(next) => {
-        if (next !== "review" && next !== "log") {
-          return;
-        }
-        actions.setComposerMode(next);
-        if (next === "log" && window.matchMedia("(pointer: fine)").matches) {
-          requestAnimationFrame(() => meta.inputRef.current?.focus());
-        }
-      }}
-      {...props(styles.modeSwitch)}
-    >
-      <SegmentedControlIndicator {...props(styles.modeIndicator)} />
-      <SegmentedControlItem
-        value="review"
-        render={(itemProps, itemState) => (
-          <button
-            type="button"
-            {...itemProps}
-            {...props(styles.modeBtn, itemState.checked && styles.modeBtnActive)}
-          />
-        )}
+    <div {...props(styles.modeSwitch)} role="tablist" aria-label="入力モード">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={composerMode === "review"}
+        onClick={() => actions.setComposerMode("review")}
+        {...props(styles.modeBtn, composerMode === "review" && styles.modeBtnActive)}
       >
         <MessageIcon />
         <span>感想を残す</span>
-      </SegmentedControlItem>
-      <SegmentedControlItem
-        value="log"
-        render={(itemProps, itemState) => (
-          <button
-            type="button"
-            {...itemProps}
-            {...props(styles.modeBtn, itemState.checked && styles.modeBtnActive)}
-          />
-        )}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={composerMode === "log"}
+        onClick={() => {
+          actions.setComposerMode("log");
+          if (window.matchMedia("(pointer: fine)").matches) {
+            requestAnimationFrame(() => meta.inputRef.current?.focus());
+          }
+        }}
+        {...props(styles.modeBtn, composerMode === "log" && styles.modeBtnActive)}
       >
         <CalendarIcon />
         <span>聴いた曲を記録</span>
-      </SegmentedControlItem>
-    </SegmentedControl>
+      </button>
+    </div>
+  );
+}
+
+function Input() {
+  const { state, actions } = useListeningLog();
+  const { searchQuery, searchResults, highlightedIndex, isSaving } = state;
+  const { registerInput } = actions;
+  const showResults = searchQuery.trim().length > 0;
+
+  return (
+    <div {...props(styles.logInputRow)}>
+      <SearchIcon />
+      <input
+        ref={registerInput}
+        type="text"
+        enterKeyHint="search"
+        aria-label="聴いた曲を検索して追加"
+        placeholder={isSaving ? "記録を保存中…" : "曲名・アーティスト名で検索して追加（複数OK）…"}
+        value={searchQuery}
+        onChange={(event) => actions.setSearchQuery(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          if (!showResults || searchResults.length === 0) {
+            return;
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            actions.setSearchQuery("");
+          } else if (event.key === "ArrowDown") {
+            event.preventDefault();
+            actions.moveHighlight(1);
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            actions.moveHighlight(-1);
+          } else if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            const target = searchResults[highlightedIndex];
+            if (target?.attributes.isrc) {
+              actions.addSong(target);
+            }
+          }
+        }}
+        {...props(styles.logInput)}
+      />
+    </div>
   );
 }
 
 export const ListeningComposer = {
   ModeSwitch,
   TargetDatePicker: TargetDatePickerPill,
-  SearchCombobox,
+  SearchPopover,
+  Input,
 };
 
 const styles = create({
   modeSwitch: {
-    position: "relative",
     display: "inline-flex",
     gap: 2,
     padding: 2,
@@ -486,21 +463,6 @@ const styles = create({
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 9999,
-    isolation: "isolate",
-  },
-  modeIndicator: {
-    position: "absolute",
-    top: "var(--segmented-control-indicator-top)",
-    left: "var(--segmented-control-indicator-left)",
-    zIndex: -1,
-    width: "var(--segmented-control-indicator-width)",
-    height: "var(--segmented-control-indicator-height)",
-    backgroundColor: t.primary,
-    borderRadius: 9999,
-    transition: {
-      default: `left 180ms ${motion.easeOut}, width 180ms ${motion.easeOut}`,
-      [chatMedia.reducedMotion]: "none",
-    },
   },
   modeBtn: {
     display: "inline-flex",
@@ -518,10 +480,10 @@ const styles = create({
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 9999,
-    transition: "color 150ms ease",
   },
   modeBtnActive: {
     color: t.primaryFg,
+    backgroundColor: t.primary,
   },
   datePillTrigger: {
     display: "inline-flex",
@@ -643,17 +605,6 @@ const styles = create({
     backgroundColor: t.primary,
     borderColor: t.primary,
   },
-  miniCalendar: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    width: "100%",
-    padding: 0,
-    backgroundColor: "transparent",
-    borderStyle: "none",
-    borderWidth: 0,
-    borderRadius: 0,
-  },
   miniMonthHead: {
     display: "flex",
     alignItems: "center",
@@ -661,7 +612,6 @@ const styles = create({
     paddingTop: 2,
   },
   miniMonthTitle: {
-    margin: 0,
     fontSize: 12.5,
     fontWeight: 600,
     fontVariantNumeric: "tabular-nums",
@@ -702,32 +652,20 @@ const styles = create({
     },
   },
   miniGrid: {
-    width: "100%",
-    tableLayout: "fixed",
-    borderSpacing: 2,
-    borderCollapse: "separate",
+    display: "grid",
+    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+    gap: 2,
   },
   miniWeekday: {
-    width: "auto",
-    height: "auto",
     paddingBlock: 2,
     fontSize: 10.5,
     fontWeight: 600,
     color: t.muted,
     textAlign: "center",
   },
-  miniDayTd: {
-    width: "auto",
-    height: "auto",
-    padding: 0,
-    verticalAlign: "middle",
-    backgroundColor: "transparent",
-    borderRadius: 0,
-  },
   miniDayBtn: {
     display: "grid",
     placeItems: "center",
-    width: "100%",
     height: 30,
     padding: 0,
     fontFamily: "inherit",
@@ -786,13 +724,17 @@ const styles = create({
     borderWidth: 0,
   },
   searchPopover: {
+    position: "absolute",
+    right: 0,
+    bottom: `calc(100% + ${chatPopover.sideOffset}px)`,
+    left: 0,
+    zIndex: 50,
     display: "flex",
     flexDirection: "column",
     gap: {
       default: 4,
       [chatMedia.compact]: 2,
     },
-    width: "var(--anchor-width)",
     maxHeight: chatPopover.maxHeight,
     padding: 6,
     overflow: "hidden",
@@ -813,7 +755,7 @@ const styles = create({
       },
       default: "translateY(0)",
     },
-    transformOrigin: "var(--transform-origin)",
+    transformOrigin: "center bottom",
     transition: {
       default: `opacity 140ms ${motion.easeOut}, transform 140ms ${motion.easeOut}`,
       [chatMedia.reducedMotion]: "opacity 120ms ease",

@@ -1,6 +1,5 @@
 import { props } from "@stylexjs/stylex";
 import type { StyleXStyles } from "@stylexjs/stylex";
-import { Button } from "@ui-sdk/react/button";
 import { PlusIcon } from "#/chat/icons";
 import { artworkUrl, searchArtists } from "#/lib/musickit";
 import type { AppleArtist } from "#/lib/musickit";
@@ -77,7 +76,7 @@ function AddFavoriteArtistBody() {
               const alreadyAdded = existingIds.has(artist.id);
               return (
                 <li key={artist.id} {...props(styles.resultRow)}>
-                  <Button
+                  <button
                     type="button"
                     disabled={alreadyAdded}
                     onClick={() => searchActions.select(artist)}
@@ -94,7 +93,7 @@ function AddFavoriteArtistBody() {
                       <ArtistGenres artist={artist} />
                     </span>
                     {alreadyAdded ? <span {...props(styles.badge)}>登録済み</span> : null}
-                  </Button>
+                  </button>
                 </li>
               );
             })}

@@ -238,7 +238,8 @@ function ChatShell({ user }: { user: Me }) {
             </ComposerDock.Panel>
 
             <ComposerDock.Panel mode="log">
-              <ListeningComposer.SearchCombobox />
+              <ListeningComposer.SearchPopover />
+              <ListeningComposer.Input />
             </ComposerDock.Panel>
           </ComposerDock.Surface>
         </ComposerDock.Root>

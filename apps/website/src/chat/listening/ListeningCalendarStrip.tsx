@@ -1,16 +1,5 @@
 import { create, props } from "@stylexjs/stylex";
 import { Button } from "@ui-sdk/react/button";
-import {
-  Calendar,
-  CalendarDay,
-  CalendarGrid,
-  CalendarHeading,
-  CalendarNext,
-  CalendarPrevious,
-  CalendarWeekday,
-  CalendarWeekdays,
-  CalendarWeeks,
-} from "@ui-sdk/react/calendar";
 import { useMemo } from "react";
 import type { ListeningLogView } from "#/lib/listening-logs";
 import { artworkUrl } from "#/lib/musickit";
@@ -18,6 +7,7 @@ import { motion } from "#/motion.stylex";
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, MusicNoteIcon } from "../icons";
 import { chatMedia, chatTokens as t } from "../tokens.stylex";
 import {
+  buildMonthGrid,
   formatJapaneseDate,
   formatMonthHeading,
   getWeekContaining,
@@ -149,115 +139,69 @@ function CalendarTopBar({
 function MonthCalendarView() {
   const { state, actions } = useListeningLog();
   const { todayKey, selectedDate, visibleYear, visibleMonthIndex, logsByDate } = state;
-  const visibleMonthIso = `${visibleYear}-${String(visibleMonthIndex + 1).padStart(2, "0")}`;
+
+  const monthCells = useMemo(
+    () => buildMonthGrid(visibleYear, visibleMonthIndex, todayKey),
+    [visibleYear, visibleMonthIndex, todayKey],
+  );
 
   return (
-    <Calendar
-      mode="single"
-      locale="ja-JP"
-      weekStartsOn={0}
-      fixedWeeks
-      showOutsideDays
-      today={todayKey}
-      value={selectedDate}
-      onValueChange={(next) => {
-        if (typeof next === "string") {
-          actions.selectDate(next);
-        }
-      }}
-      month={visibleMonthIso}
-      onMonthChange={(next) => {
-        const [yearStr, monthStr] = next.split("-");
-        const nextYear = Number(yearStr);
-        const nextMonthIndex = Number(monthStr) - 1;
-        if (Number.isFinite(nextYear) && Number.isFinite(nextMonthIndex)) {
-          actions.shiftMonth((nextYear - visibleYear) * 12 + (nextMonthIndex - visibleMonthIndex));
-        }
-      }}
-      {...props(styles.monthCalendar)}
-    >
-      <div {...props(styles.topRow)}>
-        <div {...props(styles.headingGroup)}>
-          <CalendarIcon />
-          <CalendarHeading {...props(styles.monthText)} />
-          <div {...props(styles.navGroup)}>
-            <CalendarPrevious aria-label="前の月" {...props(styles.navIconBtn)}>
-              <ChevronLeftIcon />
-            </CalendarPrevious>
-            <CalendarNext aria-label="次の月" {...props(styles.navIconBtn)}>
-              <ChevronRightIcon />
-            </CalendarNext>
-          </div>
-        </div>
-
-        <div {...props(styles.rightActions)}>
-          {selectedDate !== todayKey ? (
-            <Button
+    <>
+      <CalendarTopBar
+        prevLabel="前の月"
+        nextLabel="次の月"
+        onPrev={() => actions.shiftMonth(-1)}
+        onNext={() => actions.shiftMonth(1)}
+        toggleLabel="週表示"
+        onToggleExpand={() => actions.setCalendarExpanded(false)}
+      />
+      <div
+        {...props(styles.monthMatrix)}
+        role="grid"
+        aria-label={formatMonthHeading(visibleYear, visibleMonthIndex)}
+      >
+        {WEEKDAY_LABELS.map((label) => (
+          <span key={label} {...props(styles.matrixWeekday)}>
+            {label}
+          </span>
+        ))}
+        {monthCells.map((cell) => {
+          const entries = logsByDate.get(cell.dateKey) ?? [];
+          const isSelected = cell.dateKey === selectedDate;
+          return (
+            <button
+              key={cell.dateKey}
               type="button"
-              onClick={() => actions.selectDate(todayKey)}
-              {...props(styles.actionBtn)}
+              aria-pressed={isSelected}
+              aria-label={`${formatJapaneseDate(cell.dateKey)}（${entries.length}曲）`}
+              onClick={() => actions.selectDate(cell.dateKey)}
+              {...props(
+                styles.matrixCell,
+                !cell.inCurrentMonth && styles.cellMuted,
+                isSelected && styles.cellSelected,
+              )}
             >
-              今日
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            onClick={() => actions.setCalendarExpanded(false)}
-            {...props(styles.actionBtn)}
-          >
-            週表示
-          </Button>
-        </div>
-      </div>
-
-      <CalendarGrid {...props(styles.monthMatrix)}>
-        <CalendarWeekdays>
-          {(index) => <CalendarWeekday index={index} {...props(styles.matrixWeekday)} />}
-        </CalendarWeekdays>
-        <CalendarWeeks>
-          {(cell) => {
-            const entries = logsByDate.get(cell.date) ?? [];
-            const dayNum = Number(cell.date.slice(8));
-            return (
-              <CalendarDay
-                value={cell.date}
-                aria-label={`${formatJapaneseDate(cell.date)}（${entries.length}曲）`}
-                {...props(styles.matrixDayTd)}
-              >
-                {(dayState) => (
-                  <div
-                    {...props(
-                      styles.matrixCell,
-                      dayState.outside && styles.cellMuted,
-                      dayState.selected && styles.cellSelected,
-                    )}
-                  >
-                    <span {...props(styles.dayBadge, dayState.today && styles.dayToday)}>
-                      {dayNum}
+              <span {...props(styles.dayBadge, cell.isToday && styles.dayToday)}>{cell.day}</span>
+              <div {...props(styles.matrixVisual)}>
+                <span {...props(styles.visualDesktop)}>
+                  {entries.slice(0, 2).map((item, idx) => (
+                    <span key={item.id} {...props(idx > 0 && styles.miniOverlap)}>
+                      <CoverTile song={item.song} size={18} radius={4} />
                     </span>
-                    <div {...props(styles.matrixVisual)}>
-                      <span {...props(styles.visualDesktop)}>
-                        {entries.slice(0, 2).map((item, idx) => (
-                          <span key={item.id} {...props(idx > 0 && styles.miniOverlap)}>
-                            <CoverTile song={item.song} size={18} radius={4} />
-                          </span>
-                        ))}
-                        {entries.length > 2 ? (
-                          <span {...props(styles.extraDesktop)}>+{entries.length - 2}</span>
-                        ) : null}
-                      </span>
-                      <span {...props(styles.visualCompact)}>
-                        <CompactCovers entries={entries} />
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </CalendarDay>
-            );
-          }}
-        </CalendarWeeks>
-      </CalendarGrid>
-    </Calendar>
+                  ))}
+                  {entries.length > 2 ? (
+                    <span {...props(styles.extraDesktop)}>+{entries.length - 2}</span>
+                  ) : null}
+                </span>
+                <span {...props(styles.visualCompact)}>
+                  <CompactCovers entries={entries} />
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -285,7 +229,7 @@ function WeekCalendarView() {
           const entries = logsByDate.get(cell.dateKey) ?? [];
           const isSelected = cell.dateKey === selectedDate;
           return (
-            <Button
+            <button
               key={cell.dateKey}
               type="button"
               aria-pressed={isSelected}
@@ -312,7 +256,7 @@ function WeekCalendarView() {
                   <CompactCovers entries={entries} />
                 </span>
               </div>
-            </Button>
+            </button>
           );
         })}
       </div>
@@ -375,22 +319,7 @@ const styles = create({
     alignItems: "center",
     minWidth: 0,
   },
-  monthCalendar: {
-    display: "flex",
-    flexDirection: "column",
-    gap: {
-      default: 8,
-      [chatMedia.compact]: 6,
-    },
-    width: "100%",
-    padding: 0,
-    backgroundColor: "transparent",
-    borderStyle: "none",
-    borderWidth: 0,
-    borderRadius: 0,
-  },
   monthText: {
-    margin: 0,
     fontSize: 13.5,
     fontWeight: 600,
     fontVariantNumeric: "tabular-nums",
@@ -479,11 +408,8 @@ const styles = create({
   weekCell: {
     display: "flex",
     flexDirection: "column",
-    gap: 0,
-    alignItems: "stretch",
     justifyContent: "space-between",
     minWidth: 0,
-    height: "auto",
     minHeight: {
       default: 62,
       [chatMedia.compact]: 54,
@@ -526,28 +452,20 @@ const styles = create({
   weekVisual: {
     display: "flex",
     alignItems: "center",
-    justifyContent: {
-      default: "flex-start",
-      [chatMedia.compact]: "center",
-    },
     minWidth: 0,
     minHeight: 20,
     marginTop: 4,
     overflow: "hidden",
   },
   monthMatrix: {
-    width: "100%",
-    tableLayout: "fixed",
-    borderSpacing: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+    gap: {
       default: 5,
       [chatMedia.compact]: 4,
     },
-    borderCollapse: "separate",
   },
   matrixWeekday: {
-    width: "auto",
-    height: "auto",
-    paddingBlock: 2,
     paddingInline: 4,
     fontSize: 10.5,
     fontWeight: 600,
@@ -557,14 +475,6 @@ const styles = create({
       [chatMedia.compact]: "center",
     },
   },
-  matrixDayTd: {
-    width: "auto",
-    height: "auto",
-    padding: 0,
-    verticalAlign: "top",
-    backgroundColor: "transparent",
-    borderRadius: 0,
-  },
   matrixCell: {
     display: "flex",
     flexDirection: "column",
@@ -573,7 +483,6 @@ const styles = create({
       default: "flex-start",
       [chatMedia.compact]: "center",
     },
-    width: "100%",
     minWidth: 0,
     minHeight: {
       default: 52,

@@ -1,6 +1,5 @@
 import { create, props } from "@stylexjs/stylex";
 import type { StyleXStyles } from "@stylexjs/stylex";
-import { Button } from "@ui-sdk/react/button";
 import { useAuth } from "#/auth/AuthContext";
 import { motion } from "#/motion.stylex";
 import { fontTokens } from "./tokens.stylex";
@@ -63,9 +62,9 @@ type StartButtonProps = {
 export function StartButton({ style }: StartButtonProps) {
   const { actions } = useAuth();
   return (
-    <Button type="button" onClick={actions.signInWithGoogle} {...props(styles.primaryLink, style)}>
+    <button type="button" onClick={actions.signInWithGoogle} {...props(styles.primaryLink, style)}>
       <span>無料ではじめる</span>
       <span aria-hidden="true">→</span>
-    </Button>
+    </button>
   );
 }
