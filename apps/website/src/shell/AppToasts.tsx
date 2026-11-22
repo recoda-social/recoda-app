@@ -12,6 +12,7 @@ import {
 import { createContext, use, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { chatMedia, chatTokens as t } from "#/chat/tokens.stylex";
+import { motion } from "#/motion.stylex";
 
 type AppToastState = Record<string, never>;
 
@@ -114,6 +115,21 @@ const styles = create({
     borderWidth: 1,
     borderRadius: 12,
     boxShadow: t.shadow,
+    opacity: {
+      "@starting-style": 0,
+      default: 1,
+    },
+    transform: {
+      "@starting-style": {
+        default: "translateY(100%)",
+        [chatMedia.reducedMotion]: "none",
+      },
+      default: "translateY(0)",
+    },
+    transition: {
+      default: "opacity 400ms ease, transform 400ms ease",
+      [chatMedia.reducedMotion]: "opacity 150ms ease",
+    },
   },
   toastBody: {
     display: "flex",
@@ -147,6 +163,16 @@ const styles = create({
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 8,
-    transition: "background-color 150ms ease",
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 160ms ${motion.easeOut}, background-color 150ms ease`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
 });

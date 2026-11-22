@@ -151,7 +151,22 @@ const styles = create({
     borderBottomColor: t.border,
     borderBottomStyle: "solid",
     borderBottomWidth: 1,
+    opacity: {
+      "@starting-style": 0,
+      default: 1,
+    },
     backdropFilter: "blur(10px)",
+    transform: {
+      "@starting-style": {
+        default: "translateY(-6px)",
+        [chatMedia.reducedMotion]: "none",
+      },
+      default: "translateY(0)",
+    },
+    transition: {
+      default: `opacity 180ms ${motion.easeOut}, transform 180ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "opacity 120ms ease",
+    },
   },
   row: {
     display: "flex",
@@ -393,6 +408,17 @@ const styles = create({
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 9999,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.95)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 140ms ${motion.easeOut}, background-color 150ms ease`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
   error: {
     width: "min(100%, 960px)",
