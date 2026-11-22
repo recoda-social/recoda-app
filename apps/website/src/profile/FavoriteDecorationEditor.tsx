@@ -163,7 +163,10 @@ const styles = create({
     paddingBlock: 10,
     paddingInline: 12,
     fontFamily: "inherit",
-    fontSize: 14,
+    fontSize: {
+      default: 14,
+      [chatMedia.touch]: 16,
+    },
     lineHeight: 1.55,
     color: t.text,
     resize: "vertical",
@@ -210,11 +213,23 @@ const styles = create({
         default: "transparent",
         [chatMedia.hover]: t.hover,
       },
+      ":active": t.hover,
     },
     borderColor: t.border,
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 8,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, background-color 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
   presetGrid: {
     display: "flex",
@@ -283,18 +298,32 @@ const styles = create({
     fontSize: 12,
     fontWeight: 500,
     color: t.text,
+    touchAction: "manipulation",
     cursor: "pointer",
+    userSelect: "none",
     backgroundColor: {
       default: t.surface,
       ":hover": {
         default: t.surface,
         [chatMedia.hover]: t.hover,
       },
+      ":active": t.hover,
     },
     borderColor: t.border,
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 9999,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, background-color 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
   colorChipSelected: {
     backgroundColor: t.hover,

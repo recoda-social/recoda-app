@@ -599,6 +599,17 @@ const styles = create({
     textDecoration: "none",
     backgroundColor: t.primary,
     borderRadius: 10,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "none",
+    },
   },
   moreWrap: {
     display: "flex",
@@ -619,10 +630,22 @@ const styles = create({
         default: t.surface,
         [chatMedia.hover]: t.hover,
       },
+      ":active": t.hover,
     },
     borderColor: t.border,
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 10,
+    transform: {
+      default: null,
+      ":active": {
+        default: "scale(0.97)",
+        [chatMedia.reducedMotion]: "none",
+      },
+    },
+    transition: {
+      default: `transform 150ms ${motion.easeOut}, background-color 140ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "background-color 120ms ease",
+    },
   },
 });

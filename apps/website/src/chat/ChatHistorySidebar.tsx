@@ -378,12 +378,13 @@ const styles = create({
   scrollViewport: {
     width: "100%",
     height: "100%",
+    overscrollBehaviorY: "contain",
   },
   scrollContent: {
     paddingTop: 4,
     paddingRight: 10,
     paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px))",
-    paddingLeft: 10,
+    paddingLeft: "max(10px, env(safe-area-inset-left, 0px))",
   },
   groupList: {
     display: "flex",
@@ -636,7 +637,7 @@ const styles = create({
     paddingTop: "max(12px, env(safe-area-inset-top, 0px))",
     paddingRight: 12,
     paddingBottom: 12,
-    paddingLeft: 16,
+    paddingLeft: "max(16px, env(safe-area-inset-left, 0px))",
     borderBottomColor: t.border,
     borderBottomStyle: "solid",
     borderBottomWidth: 1,

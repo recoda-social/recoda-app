@@ -124,10 +124,7 @@ function AddFavoriteArtistDialog() {
         <PlusIcon />
         <span>好きなアーティストを追加</span>
       </FavoriteDialog.Trigger>
-      <FavoriteDialog.Content
-        title="好きなアーティストを追加"
-        description={`Apple Music からアーティストを検索して、最大 ${meta.favoriteLimit} 組まで登録できます。`}
-      >
+      <FavoriteDialog.Content title="好きなアーティストを追加">
         <AddFavoriteArtistBody />
       </FavoriteDialog.Content>
     </ArtistAddDialog.AddProvider>

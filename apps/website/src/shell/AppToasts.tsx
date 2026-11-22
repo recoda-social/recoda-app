@@ -80,7 +80,7 @@ function Viewport({ side = "bottom", align = "end", regionStyle }: ViewportProps
       data-agent-hidden=""
       side={side}
       align={align}
-      {...props(regionStyle)}
+      {...props(styles.region, regionStyle)}
     >
       {() => (
         <Toast {...props(styles.toast)}>
@@ -101,6 +101,11 @@ export const AppToasts = {
 };
 
 const styles = create({
+  region: {
+    paddingRight: "max(16px, env(safe-area-inset-right, 0px))",
+    paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px))",
+    paddingLeft: "max(16px, env(safe-area-inset-left, 0px))",
+  },
   toast: {
     display: "flex",
     gap: 12,
