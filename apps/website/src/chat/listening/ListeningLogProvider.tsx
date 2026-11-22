@@ -31,7 +31,6 @@ export function ListeningLogProvider({ children }: { children: ReactNode }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<AppleSong>>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const registerInput = useCallback((el: HTMLInputElement | null) => {
@@ -79,7 +78,6 @@ export function ListeningLogProvider({ children }: { children: ReactNode }) {
             return;
           }
           setSearchResults(songs);
-          setHighlightedIndex(0);
           setSearchLoading(false);
         })
         .catch(() => {
@@ -149,19 +147,6 @@ export function ListeningLogProvider({ children }: { children: ReactNode }) {
 
   const visibleSearchResults = trimmedQuery ? searchResults : [];
   const visibleSearchLoading = trimmedQuery ? searchLoading : false;
-  const visibleHighlighted = trimmedQuery ? highlightedIndex : 0;
-
-  const moveHighlight = useCallback(
-    (delta: -1 | 1) => {
-      if (visibleSearchResults.length === 0) {
-        return;
-      }
-      setHighlightedIndex(
-        (prev) => (prev + delta + visibleSearchResults.length) % visibleSearchResults.length,
-      );
-    },
-    [visibleSearchResults.length],
-  );
 
   const addSong = useCallback(
     (song: AppleSong) => {
@@ -170,7 +155,6 @@ export function ListeningLogProvider({ children }: { children: ReactNode }) {
         return;
       }
       setSearchQuery("");
-      setHighlightedIndex(0);
       addMutation.mutate({
         songId: song.id,
         isrc,
@@ -225,7 +209,6 @@ export function ListeningLogProvider({ children }: { children: ReactNode }) {
           searchQuery,
           searchResults: visibleSearchResults,
           searchLoading: visibleSearchLoading,
-          highlightedIndex: visibleHighlighted,
           isSaving: addMutation.isPending || removeMutation.isPending,
         },
         actions: {
@@ -237,8 +220,6 @@ export function ListeningLogProvider({ children }: { children: ReactNode }) {
           setShelfExpanded,
           toggleShelfExpanded,
           setSearchQuery,
-          setHighlightedIndex,
-          moveHighlight,
           addSong,
           removeLog,
           writeReviewForLog,
