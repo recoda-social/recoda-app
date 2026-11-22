@@ -70,7 +70,7 @@ function UserTurnMessage({ user, song, content }: { user: Me; song: AppleSong; c
     const composerRect = document.querySelector("[data-chat-composer]")?.getBoundingClientRect();
     const rawDelta = composerRect ? composerRect.top - rect.top : 40;
     const deltaY = Math.max(24, Math.min(rawDelta, window.innerHeight * 0.65));
-    const duration = Math.round(Math.min(420, Math.max(240, 200 + deltaY * 0.42)));
+    const duration = Math.round(Math.min(280, Math.max(200, 180 + deltaY * 0.25)));
 
     const animation = el.animate(
       [
