@@ -1,4 +1,4 @@
-import { create, keyframes, props } from "@stylexjs/stylex";
+import { create, props } from "@stylexjs/stylex";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@ui-sdk/react/button";
 import {
@@ -306,22 +306,6 @@ export const ChatHistorySidebar = {
   OpenTrigger,
 };
 
-const sidebarEnter = keyframes({
-  from: {
-    opacity: 0,
-    transform: "translateX(-8px)",
-  },
-  to: {
-    opacity: 1,
-    transform: "translateX(0)",
-  },
-});
-
-const fadeIn = keyframes({
-  from: { opacity: 0 },
-  to: { opacity: 1 },
-});
-
 const styles = create({
   desktopSidebar: {
     display: "flex",
@@ -334,19 +318,21 @@ const styles = create({
     borderRightColor: t.border,
     borderRightStyle: "solid",
     borderRightWidth: 1,
-    animationName: {
-      default: sidebarEnter,
-      [chatMedia.reducedMotion]: fadeIn,
+    opacity: {
+      "@starting-style": 0,
+      default: 1,
     },
-    animationDuration: {
-      default: "180ms",
-      [chatMedia.reducedMotion]: "120ms",
+    transform: {
+      "@starting-style": {
+        default: "translateX(-8px)",
+        [chatMedia.reducedMotion]: "none",
+      },
+      default: "translateX(0)",
     },
-    animationTimingFunction: {
-      default: motion.easeOut,
-      [chatMedia.reducedMotion]: "ease",
+    transition: {
+      default: `opacity 180ms ${motion.easeOut}, transform 180ms ${motion.easeOut}`,
+      [chatMedia.reducedMotion]: "opacity 120ms ease",
     },
-    animationFillMode: "both",
   },
   sidebarHeader: {
     display: "flex",

@@ -322,11 +322,7 @@ const styles = create({
       default: 1,
     },
     transform: {
-      "@starting-style": {
-        default: "scale(0.96) translateY(4px)",
-        [chatMedia.reducedMotion]: "none",
-      },
-      default: "scale(1) translateY(0)",
+      default: null,
       ":active": {
         default: "scale(0.98)",
         [chatMedia.reducedMotion]: "none",

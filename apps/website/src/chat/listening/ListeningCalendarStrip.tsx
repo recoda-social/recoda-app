@@ -438,7 +438,7 @@ const styles = create({
       default: 10,
       [chatMedia.compact]: 9,
     },
-    transition: `background-color 150ms ${motion.easeOut}, border-color 150ms ${motion.easeOut}`,
+    transition: "background-color 150ms ease, border-color 150ms ease",
   },
   weekCellTop: {
     display: "flex",
@@ -509,7 +509,7 @@ const styles = create({
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 9,
-    transition: `background-color 150ms ${motion.easeOut}, border-color 150ms ${motion.easeOut}`,
+    transition: "background-color 150ms ease, border-color 150ms ease",
   },
   cellMuted: {
     opacity: 0.4,

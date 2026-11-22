@@ -315,7 +315,7 @@ const styles = create({
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 9999,
-    transition: `background-color 150ms ${motion.easeOut}`,
+    transition: "background-color 150ms ease",
   },
   brand: {
     display: "inline-flex",

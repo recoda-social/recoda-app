@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/react/avatar";
 import { useEffect, useRef } from "react";
 import type { Me } from "#/lib/auth";
-import { motion } from "#/motion.stylex";
 import { MiniPlayerBar } from "#/songs/MiniPlayerBar";
 import { usePreviewPlayer } from "#/songs/preview-player";
 import { ChatComposer } from "./ChatComposer";
@@ -317,7 +316,7 @@ const styles = create({
       },
     },
     borderRadius: 9999,
-    transition: `background-color 150ms ${motion.easeOut}`,
+    transition: "background-color 150ms ease",
   },
   avatarSm: {
     display: "inline-flex",

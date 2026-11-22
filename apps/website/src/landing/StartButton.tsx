@@ -36,19 +36,14 @@ const styles = create({
     },
     transform: {
       default: null,
-      ":hover": {
-        default: null,
-        "@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)":
-          "translateY(-1px)",
-      },
       ":active": {
         default: null,
         "@media (prefers-reduced-motion: no-preference)": "scale(0.97)",
       },
     },
     transition: {
-      default: `transform 160ms ${motion.easeOut}, box-shadow 160ms ${motion.easeOut}`,
-      "@media (prefers-reduced-motion: reduce)": "box-shadow 120ms ease",
+      default: `transform 160ms ${motion.easeOut}`,
+      "@media (prefers-reduced-motion: reduce)": "none",
     },
   },
 });
