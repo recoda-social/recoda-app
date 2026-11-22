@@ -260,6 +260,7 @@ const styles = create({
     color: t.muted,
   },
   toggleLink: {
+    height: "auto",
     paddingBlock: 2,
     paddingInline: 6,
     fontFamily: "inherit",

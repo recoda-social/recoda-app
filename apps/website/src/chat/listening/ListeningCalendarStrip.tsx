@@ -479,8 +479,11 @@ const styles = create({
   weekCell: {
     display: "flex",
     flexDirection: "column",
+    gap: 0,
+    alignItems: "stretch",
     justifyContent: "space-between",
     minWidth: 0,
+    height: "auto",
     minHeight: {
       default: 62,
       [chatMedia.compact]: 54,
@@ -523,6 +526,10 @@ const styles = create({
   weekVisual: {
     display: "flex",
     alignItems: "center",
+    justifyContent: {
+      default: "flex-start",
+      [chatMedia.compact]: "center",
+    },
     minWidth: 0,
     minHeight: 20,
     marginTop: 4,
