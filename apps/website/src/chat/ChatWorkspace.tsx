@@ -1,7 +1,7 @@
 import { create, props } from "@stylexjs/stylex";
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/react/avatar";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { Me } from "#/lib/auth";
 import { MiniPlayerBar } from "#/songs/MiniPlayerBar";
 import { usePreviewPlayer } from "#/songs/preview-player";
@@ -26,7 +26,6 @@ function initials(name: string) {
 }
 
 function ChatShell({ user }: { user: Me }) {
-  const shellRef = useRef<HTMLDivElement | null>(null);
   const { setKeyboardOpen } = useChat().actions;
   const { state: historyState } = useChatHistory();
   const { preloadAppleMusic } = usePreviewPlayer().actions;
@@ -36,19 +35,14 @@ function ChatShell({ user }: { user: Me }) {
     preloadAppleMusic();
   }, [preloadAppleMusic]);
 
-  // iOS Safari などでソフトウェアキーボード表示中に画面をスクロールしても
-  // 入力欄がキーボード裏へ隠れないよう、シェルを visualViewport に追従させる。
+  // Gemini Web と同じく、キーボード出現時は iOS Safari ネイティブの挙動に任せて
+  // JS でシェルの高さ・位置を書き換えない。キーボードが閉じた後にスクロールずれが
+  // 残った場合だけ window.scrollTo(0, 0) で戻す。
   useEffect(() => {
-    const shellEl = shellRef.current;
-    if (!shellEl) {
-      return;
-    }
-
     const html = document.documentElement;
     const { body } = document;
+    const appRoot = document.getElementById("app");
     const prevHtml = {
-      position: html.style.position,
-      inset: html.style.inset,
       width: html.style.width,
       height: html.style.height,
       overflow: html.style.overflow,
@@ -56,14 +50,13 @@ function ChatShell({ user }: { user: Me }) {
       backgroundColor: html.style.backgroundColor,
     };
     const prevBody = {
-      position: body.style.position,
-      inset: body.style.inset,
       width: body.style.width,
       height: body.style.height,
       overflow: body.style.overflow,
       overscrollBehavior: body.style.overscrollBehavior,
       backgroundColor: body.style.backgroundColor,
     };
+    const prevAppHeight = appRoot?.style.height ?? "";
 
     const colorSchemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
     const syncBackground = () => {
@@ -72,18 +65,17 @@ function ChatShell({ user }: { user: Me }) {
       body.style.backgroundColor = bg;
     };
 
-    html.style.position = "fixed";
-    html.style.inset = "0";
     html.style.width = "100%";
     html.style.height = "100%";
     html.style.overflow = "hidden";
     html.style.overscrollBehavior = "none";
-    body.style.position = "fixed";
-    body.style.inset = "0";
     body.style.width = "100%";
     body.style.height = "100%";
     body.style.overflow = "hidden";
     body.style.overscrollBehavior = "none";
+    if (appRoot) {
+      appRoot.style.height = "100%";
+    }
     syncBackground();
     colorSchemeMedia.addEventListener("change", syncBackground);
     window.scrollTo(0, 0);
@@ -93,9 +85,6 @@ function ChatShell({ user }: { user: Me }) {
     let baseHeight = vv ? vv.height : window.innerHeight;
 
     const sync = () => {
-      if (window.scrollY !== 0 || window.scrollX !== 0) {
-        window.scrollTo(0, 0);
-      }
       const currentWidth = vv ? vv.width : window.innerWidth;
       const currentHeight = vv ? vv.height : window.innerHeight;
       const hasInputFocus =
@@ -113,16 +102,16 @@ function ChatShell({ user }: { user: Me }) {
         if (Math.abs(vv.scale - 1) > 0.01) {
           return;
         }
-        shellEl.style.height = `${vv.height}px`;
-        shellEl.style.top = `${vv.offsetTop}px`;
+        const keyboardClosed = !(vv.height < html.clientHeight - 150);
+        if (keyboardClosed && (window.scrollY > 0 || window.scrollX > 0)) {
+          window.scrollTo(0, 0);
+        }
         setKeyboardOpen(
           window.innerHeight - vv.height > 100 || (hasInputFocus && baseHeight - vv.height > 100),
         );
         return;
       }
 
-      shellEl.style.height = `${window.innerHeight}px`;
-      shellEl.style.top = "0px";
       setKeyboardOpen(hasInputFocus && baseHeight - window.innerHeight > 100);
     };
 
@@ -130,32 +119,31 @@ function ChatShell({ user }: { user: Me }) {
 
     if (vv) {
       vv.addEventListener("resize", sync);
-      vv.addEventListener("scroll", sync);
     }
+    window.addEventListener("scroll", sync, { passive: true });
     window.addEventListener("resize", sync);
     document.addEventListener("focusin", sync);
     document.addEventListener("focusout", sync);
 
     return () => {
       colorSchemeMedia.removeEventListener("change", syncBackground);
-      html.style.position = prevHtml.position;
-      html.style.inset = prevHtml.inset;
       html.style.width = prevHtml.width;
       html.style.height = prevHtml.height;
       html.style.overflow = prevHtml.overflow;
       html.style.overscrollBehavior = prevHtml.overscrollBehavior;
       html.style.backgroundColor = prevHtml.backgroundColor;
-      body.style.position = prevBody.position;
-      body.style.inset = prevBody.inset;
       body.style.width = prevBody.width;
       body.style.height = prevBody.height;
       body.style.overflow = prevBody.overflow;
       body.style.overscrollBehavior = prevBody.overscrollBehavior;
       body.style.backgroundColor = prevBody.backgroundColor;
+      if (appRoot) {
+        appRoot.style.height = prevAppHeight;
+      }
       if (vv) {
         vv.removeEventListener("resize", sync);
-        vv.removeEventListener("scroll", sync);
       }
+      window.removeEventListener("scroll", sync);
       window.removeEventListener("resize", sync);
       document.removeEventListener("focusin", sync);
       document.removeEventListener("focusout", sync);
@@ -163,7 +151,7 @@ function ChatShell({ user }: { user: Me }) {
   }, [setKeyboardOpen]);
 
   return (
-    <div ref={shellRef} data-chat-shell="" {...props(styles.shell)}>
+    <div data-chat-shell="" {...props(styles.shell)}>
       <ChatHistorySidebar.Desktop />
       <ChatHistorySidebar.MobileDrawer />
 
@@ -263,12 +251,10 @@ export function ChatWorkspace({ user }: { user: Me }) {
 
 const styles = create({
   shell: {
-    position: "fixed",
-    top: 0,
-    right: 0,
-    left: 0,
+    position: "relative",
     display: "flex",
     flexDirection: "row",
+    width: "100%",
     height: "100dvh",
     overflow: "hidden",
     color: t.text,
