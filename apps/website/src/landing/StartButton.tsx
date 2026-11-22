@@ -36,11 +36,6 @@ const styles = create({
     },
     transform: {
       default: null,
-      ":hover": {
-        default: null,
-        "@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)":
-          "translateY(-1px)",
-      },
       ":active": {
         default: null,
         "@media (prefers-reduced-motion: no-preference)": "scale(0.97)",
