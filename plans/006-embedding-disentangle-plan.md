@@ -1,6 +1,6 @@
 # 006 — 曲投稿の類似検索における埋め込みの Disentanglement 計画
 
-- **Status**: IN PROGRESS（H1・H2 検証完了／次フェーズ：4 スロット抽出と本番 `A` 構築）
+- **Status**: DONE（全 3,678 件の構造化抽出・B1/B2/rCCA 比較・ブラインド LLM-as-a-Judge 評価完了／採用モデル `rcca_reg8` を確定し本番バイナリ出力済み）
 - **Target**: `apps/api/scripts/`（オフライン学習・診断・実験）、`embedding_transforms`（`z = Ax + b`）
 - **前提制約**:
   - 本番推論は現行の `z = Ax + b`（2048 → 256 次元、Turso 単一 `vector_top_k` インデックス、F16、Workers CPU 10ms）を変更しない（ADR 0019 / 0020 / 0021）。

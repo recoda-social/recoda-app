@@ -1,6 +1,6 @@
 # 007 — タグの根拠・具体（`details`）まで一致させる Disentanglement 実装計画
 
-- **Status**: TODO
+- **Status**: DONE（007 検証および `StrictResonanceJudge` 評価完了／最終採用：`rcca_reg8`＝Step 1 文字数除去＋ノイズ除去済み `details` 強収縮 rCCA）
 - **Depends on**: [006-embedding-disentangle-plan.md](./006-embedding-disentangle-plan.md)（4 スロット × `{ tag, details, primary }` の LLM 抽出データ）
 - **Target**: オフライン学習スクリプト（`apps/api/scripts/`）、`embedding_transforms`（256 次元 `z`）
 - **目的**: タグの有無（粗い一致）にとどまらず、「同じタグの根拠・具体（`details`）同士」が一致し、かつ他スロットと混ざらない 256 次元表現を構築する。
@@ -84,3 +84,31 @@ $$\mathcal{L} = \mathcal{L}_{\text{rank}} + \beta \, \mathcal{L}_{\text{disentan
 4. **本番反映**:
    - 現行 `z = Ax + b` で十分なら `build-transform.ts` に組み込んで `plamo-1b:disentangle256-v1` へ切替。
    - ゲートが明確に勝る場合は、`embedding_transforms` にゲートパラメータ列（5 × 2049 float32 ≒ 40KB）を追加し `transform.ts` の `project()` のみ更新。
+
+---
+
+## 6. 実測結果と最終採用モデルの決定
+
+対象：ローカル vLLM（`unsloth/Qwen3.6-35B-A3B-NVFP4-Fast` + ReplaySSM）で全 3,678 件を Pydantic 構造化抽出（失敗 0・所要 10 分 16 秒、アーティスト名混入 1.2%・曲名混入 2.4%）し、Cloudflare D1 の 2048 次元 `x` と Workers AI（`@cf/pfnet/plamo-embedding-1b`）の `details` 埋め込みを用いて完全ホールドアウト（学習 2,978 件 → 完全未見 700 件＋53 言葉クエリ）で比較した。
+
+### 重要な発見（Goodhart の法則の回避）
+
+- 23 タグへの過教師（`p1_linear`: 教師 60%）や Phase 2 軽量ゲート（`p2_soft`）は、旧タグ指標（`asp@3 / mod@3`）を大きく伸ばした一方、**ブラインド LLM-as-a-Judge（正逆両方向・位置バイアス除去）では Baseline に明確に負けた**（`p1_linear` 42.2%、`p2_soft` 33.0%）。粗い 23 タグにエネルギーを集中させると、`PLaMo-Embedding-1B` が元々持つ微細な感情・文脈ニュアンスが潰れるため。
+- 逆に、23 タグのボトルネックを通さず、**曲名・アーティスト名・挨拶ノイズ・文量を取り除いた連続 `details` 埋め込み $y_i^{\text{clean}}$ と $\tilde{x}\_i$ の強収縮正則化 CCA（`rcca_reg8`: `Cov-Ortho(len, λ=1.0)` ＋ `rCCA(reg_x=8.0, reg_y=4.0, power=1.5)`）** が、縦・横 MECE 4 軸（`situation` / `memory` / `musical_focus` / `emotion_shift`）に基づく **`StrictResonanceJudge` 絶対評価で全軸 1 位**となった。
+
+### `StrictResonanceJudge`（完全未見 150 クエリ × Top-3 ＝ 各 450 ペア）＋定量指標
+
+| 手法（純線形 `z = Ax + b`）       | 平均点 (/3) | 妥当率 (≥2) |   **強共鳴 (3点)** | **ハズレ (0点)** |      **#1 妥当率** |       **`言葉@10`** |  `len@3` |
+| :-------------------------------- | ----------: | ----------: | -----------------: | ---------------: | -----------------: | ------------------: | -------: |
+| `baseline`（現行 PCA 256）        |       2.418 |       76.4% |        66.4% (299) |         1.1% (5) |              76.0% |               60.4% |     0.64 |
+| **`rcca_reg8`（最終採用）**       |   **2.487** |   **78.9%** | **70.4%** (+4.0pt) |   **0.7%** (3件) | **82.7%** (+6.7pt) | **73.8%** (+13.4pt) | **0.34** |
+| `metric_mlp`（8,000 ペア学習）    |       2.402 |       76.9% |        65.1% (293) |         1.8% (8) |              79.3% |               66.8% |     0.30 |
+| `metric_linear`（8,000 ペア学習） |       2.240 |       68.4% |        58.4% (263) |        2.9% (13) |              72.7% |               58.3% |     0.32 |
+
+### 最終採用と本番反映手順
+
+- **採用モデル**: `plamo-1b:disentangle256-v1`（全 3,678 件で学習した `rcca_reg8` を単一アフィン変換 `z = Ax + b` へ合成、推論コード・Turso スキーマ変更ゼロ）
+- **生成＆登録コマンド**:
+  1. バイナリ生成：`apps/api/scripts/disentangle-lab/export_production_transform.py` → `out/plamo-1b-disentangle256-v1.bin`（2,098,176 bytes）
+  2. Turso 登録：`vpx apps/api/scripts/register-transform.ts apps/api/scripts/disentangle-lab/out/plamo-1b-disentangle256-v1.bin plamo-1b:disentangle256-v1`
+  3. 再埋め込み＆切替：`reembed-posts.ts` で新モデルの 256 次元 `z` を生成 → `packages/db/src/constants.ts` の `EMBEDDING_MODEL` を `plamo-1b:disentangle256-v1` へ切替。

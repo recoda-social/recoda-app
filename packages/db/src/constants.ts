@@ -37,9 +37,9 @@ export const EMBEDDING_DIMENSIONS = 256;
 export const EMBEDDING_INPUT_DIMENSIONS = 2048;
 /**
  * post_embeddings.model に入れる値。埋め込みのモデルと、x を z に落とす変換の版を表す。
- * embedding_transforms の行の model と同じ値にする（docs/adr/0020-embedding-pca-without-whitening.md）。
+ * embedding_transforms の行の model と同じ値にする（plans/007-tag-detail-disentangle-plan.md）。
  */
-export const EMBEDDING_MODEL = "plamo-1b:pca256-v1";
+export const EMBEDDING_MODEL = "plamo-1b:disentangle256-v1";
 
 export const REPORT_STATUSES = ["open", "resolved", "dismissed"] as const;
 /** 通報の理由。表示する文言は画面側で決める。 */
