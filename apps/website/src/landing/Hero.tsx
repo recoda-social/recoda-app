@@ -1,5 +1,4 @@
 import { create, props } from "@stylexjs/stylex";
-import { motion } from "#/motion.stylex";
 import { BudouxText } from "./BudouxText";
 import { Avatar } from "./Avatar";
 import { MusicPill } from "./MusicPill";
@@ -133,7 +132,7 @@ const styles = create({
       default: 1,
       ":active": 0.65,
     },
-    transition: `color 120ms ${motion.easeOut}, opacity 120ms ${motion.easeOut}`,
+    transition: "color 120ms ease, opacity 120ms ease",
   },
   heroVisual: {
     position: "relative",

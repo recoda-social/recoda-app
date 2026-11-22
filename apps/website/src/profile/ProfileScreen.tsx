@@ -247,7 +247,7 @@ const styles = create({
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 8,
-    transition: `color 150ms ${motion.easeOut}`,
+    transition: "color 150ms ease",
   },
   tabSelected: {
     fontWeight: 600,

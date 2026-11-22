@@ -63,7 +63,7 @@ const styles = create({
       default: 1,
       ":active": 0.65,
     },
-    transition: `color 120ms ${motion.easeOut}, opacity 120ms ${motion.easeOut}`,
+    transition: "color 120ms ease, opacity 120ms ease",
   },
   headerPrimaryLinkHidden: {
     // StartButton の display（inline-flex）を、640px 以下でだけ none にする。default を null にすると inline-flex も消える。
@@ -90,7 +90,7 @@ const styles = create({
     transform: {
       default: null,
       ":active": {
-        default: "scale(0.92)",
+        default: "scale(0.97)",
         [landingMedia.reducedMotion]: "none",
       },
     },
@@ -196,7 +196,7 @@ const styles = create({
       default: 1,
       ":active": 0.65,
     },
-    transition: `color 120ms ${motion.easeOut}, opacity 120ms ${motion.easeOut}`,
+    transition: "color 120ms ease, opacity 120ms ease",
   },
 });
 

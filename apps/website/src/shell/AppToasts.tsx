@@ -12,7 +12,6 @@ import {
 import { createContext, use, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { chatMedia, chatTokens as t } from "#/chat/tokens.stylex";
-import { motion } from "#/motion.stylex";
 
 type AppToastState = Record<string, never>;
 
@@ -148,6 +147,6 @@ const styles = create({
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 8,
-    transition: `background-color 150ms ${motion.easeOut}`,
+    transition: "background-color 150ms ease",
   },
 });
