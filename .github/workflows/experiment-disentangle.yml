@@ -1,0 +1,33 @@
+# 仮説 H2（Step 1：文字数方向の除去 ＋ Step 2：教師あり直交ブロック射影）を D1 の x に対して検証する。
+name: Experiment disentangle
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 対象
+        type: choice
+        options: [staging, production]
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'staging' }}
+    concurrency:
+      group: embedding-experiment-${{ inputs.environment || 'staging' }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          node-version: "24"
+          cache: true
+      - run: vp run api#embedding:experiment
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKERS_AI_API_TOKEN: ${{ secrets.WORKERS_AI_API_TOKEN }}
+          X_STORE_NAME: ${{ (inputs.environment || 'staging') == 'staging' && 'x-store-staging-01' || 'x-store-01' }}

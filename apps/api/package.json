@@ -17,7 +17,9 @@
     "embedding:embed-posts": "vpx ./scripts/embed-posts.ts",
     "embedding:reembed-posts": "vpx ./scripts/reembed-posts.ts",
     "embedding:build-transform": "vpx ./scripts/build-transform.ts",
-    "embedding:evaluate": "vpx ./scripts/evaluate-embeddings.ts"
+    "embedding:evaluate": "vpx ./scripts/evaluate-embeddings.ts",
+    "embedding:diagnose": "vpx ./scripts/diagnose-embeddings.ts",
+    "embedding:experiment": "vpx ./scripts/experiment-disentangle.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.25",
