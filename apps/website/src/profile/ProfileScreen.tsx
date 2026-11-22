@@ -154,17 +154,6 @@ const styles = create({
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 8,
-    transform: {
-      default: null,
-      ":active": {
-        default: "scale(0.97)",
-        [chatMedia.reducedMotion]: "none",
-      },
-    },
-    transition: {
-      default: `transform 160ms ${motion.easeOut}, background-color 150ms ease`,
-      [chatMedia.reducedMotion]: "background-color 120ms ease",
-    },
   },
   brand: {
     display: "inline-flex",
@@ -258,7 +247,7 @@ const styles = create({
     borderStyle: "none",
     borderWidth: 0,
     borderRadius: 8,
-    transition: "color 150ms ease",
+    transition: `color 150ms ${motion.easeOut}`,
   },
   tabSelected: {
     fontWeight: 600,
@@ -266,20 +255,18 @@ const styles = create({
   },
   tabIndicator: {
     position: "absolute",
-    right: 0,
     bottom: -1,
-    left: 0,
+    left: "var(--active-tab-left)",
+    width: "var(--active-tab-width)",
     height: 2,
-    pointerEvents: "none",
     backgroundColor: t.primary,
-    clipPath:
-      "inset(0 calc(100% - var(--active-tab-left) - var(--active-tab-width)) 0 var(--active-tab-left) round 9999px)",
+    borderRadius: 9999,
     transitionTimingFunction: motion.easeOut,
     transitionDuration: {
       default: "200ms",
       [chatMedia.reducedMotion]: "0ms",
     },
-    transitionProperty: "clip-path",
+    transitionProperty: "left, width",
   },
   tabPanel: {
     outline: "none",

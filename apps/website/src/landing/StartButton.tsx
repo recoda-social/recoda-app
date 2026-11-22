@@ -1,6 +1,5 @@
 import { create, props } from "@stylexjs/stylex";
 import type { StyleXStyles } from "@stylexjs/stylex";
-import { Button } from "@ui-sdk/react/button";
 import { useAuth } from "#/auth/AuthContext";
 import { motion } from "#/motion.stylex";
 import { fontTokens } from "./tokens.stylex";
@@ -37,14 +36,19 @@ const styles = create({
     },
     transform: {
       default: null,
+      ":hover": {
+        default: null,
+        "@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)":
+          "translateY(-1px)",
+      },
       ":active": {
         default: null,
         "@media (prefers-reduced-motion: no-preference)": "scale(0.97)",
       },
     },
     transition: {
-      default: `transform 160ms ${motion.easeOut}`,
-      "@media (prefers-reduced-motion: reduce)": "none",
+      default: `transform 160ms ${motion.easeOut}, box-shadow 160ms ${motion.easeOut}`,
+      "@media (prefers-reduced-motion: reduce)": "box-shadow 120ms ease",
     },
   },
 });
@@ -63,9 +67,9 @@ type StartButtonProps = {
 export function StartButton({ style }: StartButtonProps) {
   const { actions } = useAuth();
   return (
-    <Button type="button" onClick={actions.signInWithGoogle} {...props(styles.primaryLink, style)}>
+    <button type="button" onClick={actions.signInWithGoogle} {...props(styles.primaryLink, style)}>
       <span>無料ではじめる</span>
       <span aria-hidden="true">→</span>
-    </Button>
+    </button>
   );
 }

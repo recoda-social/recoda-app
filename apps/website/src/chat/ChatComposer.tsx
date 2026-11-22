@@ -1,6 +1,5 @@
-import { create, props } from "@stylexjs/stylex";
+import { create, keyframes, props } from "@stylexjs/stylex";
 import { Button } from "@ui-sdk/react/button";
-import { Textarea } from "@ui-sdk/react/textarea";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { artworkUrl } from "#/lib/musickit";
@@ -145,7 +144,7 @@ function Input() {
   }, [state.draft, state.selectedSong, keyboardOpen, compact]);
 
   return (
-    <Textarea
+    <textarea
       ref={handleTextareaRef}
       {...props(styles.textarea)}
       aria-label={text.label}
@@ -170,7 +169,7 @@ function Input() {
         compositionEndedAtRef.current = performance.now();
         actions.setComposing(false);
       }}
-      onValueChange={(value) => actions.updateDraft(value)}
+      onChange={(event) => actions.updateDraft(event.currentTarget.value)}
       onKeyDown={(event) => {
         if (menuOpen) {
           if (event.key === "Escape") {
@@ -301,6 +300,22 @@ export const ChatComposer = {
   Submit,
 };
 
+const chipEnter = keyframes({
+  from: {
+    opacity: 0,
+    transform: "scale(0.96) translateY(4px)",
+  },
+  to: {
+    opacity: 1,
+    transform: "scale(1) translateY(0)",
+  },
+});
+
+const fadeIn = keyframes({
+  from: { opacity: 0 },
+  to: { opacity: 1 },
+});
+
 const styles = create({
   form: {
     display: "flex",
@@ -332,22 +347,20 @@ const styles = create({
     borderStyle: "solid",
     borderWidth: 1,
     borderRadius: 12,
-    opacity: {
-      "@starting-style": 0,
-      default: 1,
-    },
-    transform: {
-      "@starting-style": {
-        default: "scale(0.96) translateY(4px)",
-        [chatMedia.reducedMotion]: "none",
-      },
-      default: "scale(1) translateY(0)",
-    },
     transformOrigin: "left bottom",
-    transition: {
-      default: `opacity 180ms ${motion.easeOut}, transform 180ms ${motion.easeOut}`,
-      [chatMedia.reducedMotion]: "opacity 120ms ease",
+    animationName: {
+      default: chipEnter,
+      [chatMedia.reducedMotion]: fadeIn,
     },
+    animationDuration: {
+      default: "180ms",
+      [chatMedia.reducedMotion]: "120ms",
+    },
+    animationTimingFunction: {
+      default: motion.easeOut,
+      [chatMedia.reducedMotion]: "ease",
+    },
+    animationFillMode: "both",
   },
   attachmentArt: {
     flexShrink: 0,
