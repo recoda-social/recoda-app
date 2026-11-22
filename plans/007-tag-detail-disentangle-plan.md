@@ -105,11 +105,20 @@ $$\mathcal{L} = \mathcal{L}_{\text{rank}} + \beta \, \mathcal{L}_{\text{disentan
 | `metric_mlp`（8,000 ペア学習）    |       2.402 |       76.9% |        65.1% (293) |         1.8% (8) |              79.3% |               66.8% |     0.30 |
 | `metric_linear`（8,000 ペア学習） |       2.240 |       68.4% |        58.4% (263) |        2.9% (13) |              72.7% |               58.3% |     0.32 |
 
+### 書き換え後データ（#113: 曲番号 300〜865 書き換え、全 3,675 件）での再検証結果
+
+| 手法（Train 2,976 → Unseen 699 / 150 クエリ） | 平均点 (/3) | 妥当率 (≥2) | **強共鳴 (3点)** | **ハズレ (0点)** | **#1 妥当率** |   `len@3` |
+| :-------------------------------------------- | ----------: | ----------: | ---------------: | ---------------: | ------------: | --------: |
+| `baseline_pca`                                |       2.511 |       82.0% |            70.9% |             1.8% |         85.3% |     0.234 |
+| **`rcca_reg8`（最終採用）**                   |   **2.629** |   **86.7%** |        **76.9%** |         **0.7%** |     **86.7%** | **0.098** |
+| `rcca_reg4`                                   |       2.611 |       86.2% |            76.4% |             1.6% |         86.7% |     0.126 |
+| `4slot_prim_qlead`（Stage 2 Reranking）       |       2.633 |       86.0% |            78.0% |             0.7% |         84.0% |     0.115 |
+
 ### 最終採用と本番反映手順
 
-- **採用モデル**: `plamo-1b:disentangle256-v1`（全 3,678 件で学習した `rcca_reg8` を単一アフィン変換 `z = Ax + b` へ合成、推論コード・Turso スキーマ変更ゼロ）
-  - ※本モデルが行う分離（Disentanglement）は、**「文量・表層ノイズ（曲名・アーティスト名・挨拶等）と純粋な体験・感性の中身の分離（`Cov-Ortho` ＋ ノイズ除去済み `details` との強収縮 `rCCA`）」および「出力 256 軸同士の無相関化」** であり、当初案の「5 スロットを明示的な別ブロックへ分割する方式」は体験×感情の微細な掛け算を損なうため不採用とした。
+- **採用モデル**: `plamo-1b:rcca256-v1`（書き換え後の全 3,675 件で学習した `rcca_reg8` を単一アフィン変換 `z = Ax + b` へ合成、推論コード・Turso スキーマ変更ゼロ）
+  - ※本モデルが行うのは、**「文量・表層ノイズ（曲名・アーティスト名・挨拶等）の除去（`Cov-Ortho` ＋ ノイズ除去済み `details` との強収縮 `rCCA`）」および「出力 256 軸同士の無相関化」** であり、当初案の「5 スロットを明示的な別ブロックへ分割する方式」は不採用としたため、モデル名も実態に即して `plamo-1b:rcca256-v1` とした。
 - **生成＆登録コマンド**:
-  1. バイナリ生成：`apps/api/scripts/disentangle-lab/export_production_transform.py` → `out/plamo-1b-disentangle256-v1.bin`（2,098,176 bytes）
-  2. Turso 登録：`vpx apps/api/scripts/register-transform.ts apps/api/scripts/disentangle-lab/out/plamo-1b-disentangle256-v1.bin plamo-1b:disentangle256-v1`
-  3. 再射影＆切替：`EMBEDDING_MODEL=plamo-1b:disentangle256-v1 vpx apps/api/scripts/embed-posts.ts` で新モデルの 256 次元 `z` を生成 → `packages/db/src/constants.ts` の `EMBEDDING_MODEL` を `plamo-1b:disentangle256-v1` へ切替。
+  1. バイナリ生成：`apps/api/scripts/disentangle-lab/export_production_transform.py` → `out/plamo-1b-rcca256-v1.bin`（2,098,176 bytes）
+  2. Turso 登録：`vpx apps/api/scripts/register-transform.ts apps/api/scripts/disentangle-lab/out/plamo-1b-rcca256-v1.bin plamo-1b:rcca256-v1`
+  3. 再射影＆切替：`EMBEDDING_MODEL=plamo-1b:rcca256-v1 vpx apps/api/scripts/embed-posts.ts` で新モデルの 256 次元 `z` を生成 → `packages/db/src/constants.ts` の `EMBEDDING_MODEL` を `plamo-1b:rcca256-v1` へ切替。

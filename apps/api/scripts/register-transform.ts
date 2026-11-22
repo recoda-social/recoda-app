@@ -5,8 +5,8 @@
  * 実行例:
  *   TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... \
  *   vpx apps/api/scripts/register-transform.ts \
- *     apps/api/scripts/disentangle-lab/out/plamo-1b-disentangle256-v1.bin \
- *     plamo-1b:disentangle256-v1
+ *     apps/api/scripts/disentangle-lab/out/plamo-1b-rcca256-v1.bin \
+ *     plamo-1b:rcca256-v1
  */
 import { readFile } from "node:fs/promises";
 import { createClient } from "@libsql/client";
@@ -29,7 +29,7 @@ function fail(error: Error): never {
   process.exit(1);
 }
 
-const [binPath, model = "plamo-1b:disentangle256-v1"] = process.argv.slice(2);
+const [binPath, model = "plamo-1b:rcca256-v1"] = process.argv.slice(2);
 if (!binPath) {
   fail(
     new TransformBinaryError({

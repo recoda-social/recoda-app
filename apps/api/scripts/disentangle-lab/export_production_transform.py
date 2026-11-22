@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-最終採用モデル `plamo-1b:disentangle256-v1`（Step 1 Cov-Ortho 文字数除去 ＋ 強収縮 rCCA on denoised details）
-を全 3,678 件の公式レビューで学習し、Turso `embedding_transforms` 登録用の生バイナリ（A + b、little-endian float32）を書き出す。
+最終採用モデル `plamo-1b:rcca256-v1`（Step 1 Cov-Ortho 文字数除去 ＋ 強収縮 rCCA on denoised details）
+を全公式レビューで学習し、Turso `embedding_transforms` 登録用の生バイナリ（A + b、little-endian float32）を書き出す。
 
-出力フォーマット（plamo-1b-disentangle256-v1.bin、計 2,098,176 bytes）:
+出力フォーマット（plamo-1b-rcca256-v1.bin、計 2,098,176 bytes）:
   - 先頭 256 * 2048 * 4 = 2,097,152 bytes: A（行優先 float32）
   - 末尾 256 * 4        =     1,024 bytes: b（float32）
 """
@@ -54,7 +54,7 @@ def main() -> None:
     ]
     x_all = np.stack([x_map[k] for k in all_keys], axis=0)
     lens_all = np.array([len(post_by_key[k]["content"]) for k in all_keys], dtype=np.float64)
-    log(f"全 {len(all_keys)} 件で本番変換 plamo-1b:disentangle256-v1 を学習中...")
+    log(f"全 {len(all_keys)} 件で本番変換 plamo-1b:rcca256-v1 を学習中...")
 
     # Step 1: 中心化 + Cov-Ortho (len, λ=1.0)
     mean_x = x_all.mean(axis=0)  # (D,)
@@ -84,7 +84,7 @@ def main() -> None:
     assert np.isfinite(a_f32).all() and np.isfinite(b_f32).all(), "NaN/Inf detected"
     log(f"数値等価性検証 OK: max |z_affine - z_direct| = {max_err:.2e}")
 
-    bin_path = out_dir / "plamo-1b-disentangle256-v1.bin"
+    bin_path = out_dir / "plamo-1b-rcca256-v1.bin"
     with bin_path.open("wb") as f:
         f.write(a_f32.tobytes())
         f.write(b_f32.tobytes())
