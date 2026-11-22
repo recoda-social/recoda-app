@@ -1,4 +1,5 @@
 import { create, props } from "@stylexjs/stylex";
+import { Button } from "@ui-sdk/react/button";
 import {
   Popover,
   PopoverClose,
@@ -96,6 +97,7 @@ function MobileLoggedSongPill({ log }: LoggedSongPillProps) {
             この曲の感想を書く
           </BottomSheetDrawer.Close>
           <BottomSheetDrawer.Close
+            data-agent-confirm={`「${title}」をこの日の聴いた曲の記録から削除します`}
             onClick={() => actions.removeLog(log.id)}
             {...props(styles.actionBtn, styles.actionBtnDanger)}
           >
@@ -132,6 +134,7 @@ function DesktopLoggedSongPill({ log }: LoggedSongPillProps) {
             この曲の感想を書く
           </PopoverClose>
           <PopoverClose
+            data-agent-confirm={`「${title}」をこの日の聴いた曲の記録から削除します`}
             onClick={() => actions.removeLog(log.id)}
             {...props(styles.actionBtn, styles.actionBtnDanger)}
           >
@@ -158,14 +161,14 @@ export function ListeningDayShelf() {
         <div {...props(styles.headerRight)}>
           <span {...props(styles.count)}>{selectedEntries.length} 曲</span>
           {selectedEntries.length > 2 ? (
-            <button
+            <Button
               type="button"
               aria-expanded={shelfExpanded}
               onClick={actions.toggleShelfExpanded}
               {...props(styles.toggleLink)}
             >
               {shelfExpanded ? "折りたたむ" : "すべて見る"}
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -193,7 +196,7 @@ export function ListeningDayShelf() {
           )}
 
           {hidden.length > 0 ? (
-            <button
+            <Button
               type="button"
               onClick={() => actions.setShelfExpanded(true)}
               aria-label={`ほか ${hidden.length} 曲を表示`}
@@ -207,7 +210,7 @@ export function ListeningDayShelf() {
                 ))}
               </span>
               <span {...props(styles.clusterLabel)}>+{hidden.length} 曲</span>
-            </button>
+            </Button>
           ) : null}
         </div>
       )}

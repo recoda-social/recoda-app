@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { create, props } from "@stylexjs/stylex";
+import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "@ui-sdk/react/collapsible";
 import { motion } from "#/motion.stylex";
 import { fontTokens, landingMedia, landingTokens as t } from "./tokens.stylex";
 import { Logo } from "./Logo";
@@ -204,7 +205,12 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header {...props(styles.header)}>
+    <Collapsible
+      open={isMenuOpen}
+      onOpenChange={setIsMenuOpen}
+      render={<header />}
+      {...props(styles.header)}
+    >
       <div {...props(styles.headerInner)}>
         <Logo />
         <nav aria-label="メインナビゲーション" {...props(styles.nav)}>
@@ -219,25 +225,18 @@ export function Header() {
           </a>
         </nav>
         <StartButton style={styles.headerPrimaryLinkHidden} />
-        <button
-          type="button"
+        <CollapsibleTrigger
           aria-label={isMenuOpen ? "メニューを閉じる" : "メニューを開く"}
-          aria-expanded={isMenuOpen}
-          aria-controls="mobile-nav"
-          onClick={() => setIsMenuOpen((open) => !open)}
           {...props(styles.menuButton)}
         >
           <span {...props(styles.menuButtonBarTop, isMenuOpen && styles.menuButtonBarTopOpen)} />
           <span
             {...props(styles.menuButtonBarBottom, isMenuOpen && styles.menuButtonBarBottomOpen)}
           />
-        </button>
+        </CollapsibleTrigger>
       </div>
-      <nav
-        id="mobile-nav"
-        aria-label="モバイルナビゲーション"
-        aria-hidden={!isMenuOpen}
-        inert={!isMenuOpen}
+      <CollapsiblePanel
+        render={<nav aria-label="モバイルナビゲーション" />}
         {...props(styles.mobileNav, isMenuOpen && styles.mobileNavOpen)}
       >
         <a href="#about" {...props(styles.navLinkMobile)} onClick={() => setIsMenuOpen(false)}>
@@ -253,7 +252,7 @@ export function Header() {
         <a href="#voices" {...props(styles.navLinkMobile)} onClick={() => setIsMenuOpen(false)}>
           Voices
         </a>
-      </nav>
-    </header>
+      </CollapsiblePanel>
+    </Collapsible>
   );
 }
