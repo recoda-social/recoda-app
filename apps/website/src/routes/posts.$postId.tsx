@@ -1,15 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { meQuery } from "#/lib/auth";
+import { useAuth } from "#/auth/AuthContext";
 import { PostDetailScreen } from "#/posts/PostDetailScreen";
 
 export const Route = createFileRoute("/posts/$postId")({ component: PostDetailRoute });
 
 function PostDetailRoute() {
   const { postId } = Route.useParams();
-  const me = useQuery(meQuery);
+  const { state } = useAuth();
 
-  if (me.isPending) {
+  if (state.isPending) {
     return (
       <main
         style={{
@@ -25,7 +24,7 @@ function PostDetailRoute() {
     );
   }
 
-  if (!me.data) {
+  if (!state.user) {
     return (
       <main
         style={{

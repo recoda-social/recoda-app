@@ -52,8 +52,6 @@ function SongArt({
 
 type LoggedSongPillProps = {
   log: ListeningLogView;
-  onWriteReview: (log: ListeningLogView) => void;
-  onRemove: (logId: string) => void;
 };
 
 function PillContent({ song }: { song: ListeningLogView["song"] }) {
@@ -70,7 +68,8 @@ function PillContent({ song }: { song: ListeningLogView["song"] }) {
   );
 }
 
-function MobileLoggedSongPill({ log, onWriteReview, onRemove }: LoggedSongPillProps) {
+function MobileLoggedSongPill({ log }: LoggedSongPillProps) {
+  const { actions } = useListeningLog();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const title = log.song.title ?? "（曲名なし）";
   const artist = log.song.artistName ?? "";
@@ -90,11 +89,14 @@ function MobileLoggedSongPill({ log, onWriteReview, onRemove }: LoggedSongPillPr
           </div>
         </div>
         <div {...props(styles.actionButtons)}>
-          <BottomSheetDrawer.Close onClick={() => onWriteReview(log)} {...props(styles.actionBtn)}>
+          <BottomSheetDrawer.Close
+            onClick={() => actions.writeReviewForLog(log)}
+            {...props(styles.actionBtn)}
+          >
             この曲の感想を書く
           </BottomSheetDrawer.Close>
           <BottomSheetDrawer.Close
-            onClick={() => onRemove(log.id)}
+            onClick={() => actions.removeLog(log.id)}
             {...props(styles.actionBtn, styles.actionBtnDanger)}
           >
             この日の記録から外す
@@ -105,7 +107,8 @@ function MobileLoggedSongPill({ log, onWriteReview, onRemove }: LoggedSongPillPr
   );
 }
 
-function DesktopLoggedSongPill({ log, onWriteReview, onRemove }: LoggedSongPillProps) {
+function DesktopLoggedSongPill({ log }: LoggedSongPillProps) {
+  const { actions } = useListeningLog();
   const title = log.song.title ?? "（曲名なし）";
   const artist = log.song.artistName ?? "";
   const triggerLabel = `${title}${artist ? `（${artist}）` : ""}のメニューを開く`;
@@ -125,11 +128,11 @@ function DesktopLoggedSongPill({ log, onWriteReview, onRemove }: LoggedSongPillP
           </div>
         </div>
         <div {...props(styles.actionButtons)}>
-          <PopoverClose onClick={() => onWriteReview(log)} {...props(styles.actionBtn)}>
+          <PopoverClose onClick={() => actions.writeReviewForLog(log)} {...props(styles.actionBtn)}>
             この曲の感想を書く
           </PopoverClose>
           <PopoverClose
-            onClick={() => onRemove(log.id)}
+            onClick={() => actions.removeLog(log.id)}
             {...props(styles.actionBtn, styles.actionBtnDanger)}
           >
             この日の記録から外す
@@ -142,12 +145,11 @@ function DesktopLoggedSongPill({ log, onWriteReview, onRemove }: LoggedSongPillP
 
 export function ListeningDayShelf() {
   const { state, actions } = useListeningLog();
-  const { selectedDate, selectedEntries, errorMessage, isLoading } = state;
+  const { selectedDate, selectedEntries, errorMessage, isLoading, shelfExpanded } = state;
   const compact = useMediaQuery("(max-width: 540px)");
-  const [expanded, setExpanded] = useState(false);
 
-  const visible = expanded ? selectedEntries : selectedEntries.slice(0, 2);
-  const hidden = expanded ? [] : selectedEntries.slice(2);
+  const visible = shelfExpanded ? selectedEntries : selectedEntries.slice(0, 2);
+  const hidden = shelfExpanded ? [] : selectedEntries.slice(2);
 
   return (
     <section {...props(styles.shelf)} aria-label={`${formatJapaneseDate(selectedDate)} に聴いた曲`}>
@@ -158,11 +160,11 @@ export function ListeningDayShelf() {
           {selectedEntries.length > 2 ? (
             <button
               type="button"
-              aria-expanded={expanded}
-              onClick={() => setExpanded((prev) => !prev)}
+              aria-expanded={shelfExpanded}
+              onClick={actions.toggleShelfExpanded}
               {...props(styles.toggleLink)}
             >
-              {expanded ? "折りたたむ" : "すべて見る"}
+              {shelfExpanded ? "折りたたむ" : "すべて見る"}
             </button>
           ) : null}
         </div>
@@ -184,26 +186,16 @@ export function ListeningDayShelf() {
         <div {...props(styles.stackWrap)}>
           {visible.map((log) =>
             compact ? (
-              <MobileLoggedSongPill
-                key={log.id}
-                log={log}
-                onWriteReview={actions.writeReviewForLog}
-                onRemove={actions.removeLog}
-              />
+              <MobileLoggedSongPill key={log.id} log={log} />
             ) : (
-              <DesktopLoggedSongPill
-                key={log.id}
-                log={log}
-                onWriteReview={actions.writeReviewForLog}
-                onRemove={actions.removeLog}
-              />
+              <DesktopLoggedSongPill key={log.id} log={log} />
             ),
           )}
 
           {hidden.length > 0 ? (
             <button
               type="button"
-              onClick={() => setExpanded(true)}
+              onClick={() => actions.setShelfExpanded(true)}
               aria-label={`ほか ${hidden.length} 曲を表示`}
               {...props(styles.clusterBtn)}
             >

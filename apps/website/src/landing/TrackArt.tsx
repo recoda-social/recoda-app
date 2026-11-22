@@ -52,23 +52,30 @@ const artStyles = create({
 
 export type ArtVariant = keyof typeof artStyles;
 
-type TrackArtProps = {
-  variant: ArtVariant;
-  style?: StyleXStyles<{
-    width?: string;
-    height?: string;
-    aspectRatio?: string;
-    gridRow?: string | number;
-    "@media (max-width: 640px)"?: { gridRow?: string };
-  }>;
-  label?: string;
-};
+type TrackArtStyle = StyleXStyles<{
+  width?: string;
+  height?: string;
+  aspectRatio?: string;
+  gridRow?: string | number;
+  "@media (max-width: 640px)"?: { gridRow?: string };
+}>;
 
-export function TrackArt({ variant, style, label }: TrackArtProps) {
-  if (label) {
-    return (
-      <div role="img" aria-label={label} {...props(baseStyles.base, artStyles[variant], style)} />
-    );
-  }
+function Decorative({ variant, style }: { variant: ArtVariant; style?: TrackArtStyle }) {
   return <span {...props(baseStyles.base, artStyles[variant], style)} aria-hidden="true" />;
 }
+
+function Labeled({
+  variant,
+  label,
+  style,
+}: {
+  variant: ArtVariant;
+  label: string;
+  style?: TrackArtStyle;
+}) {
+  return (
+    <div role="img" aria-label={label} {...props(baseStyles.base, artStyles[variant], style)} />
+  );
+}
+
+export const TrackArt = { Decorative, Labeled };

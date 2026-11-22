@@ -1,14 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { meQuery } from "#/lib/auth";
+import { useAuth } from "#/auth/AuthContext";
 import { ProfileScreen } from "#/profile/ProfileScreen";
 
 export const Route = createFileRoute("/profile")({ component: ProfileRoute });
 
 function ProfileRoute() {
-  const me = useQuery(meQuery);
+  const { state } = useAuth();
 
-  if (me.isPending) {
+  if (state.isPending) {
     return (
       <main
         style={{
@@ -24,7 +23,7 @@ function ProfileRoute() {
     );
   }
 
-  if (!me.data) {
+  if (!state.user) {
     return (
       <main
         style={{
@@ -45,5 +44,5 @@ function ProfileRoute() {
     );
   }
 
-  return <ProfileScreen user={me.data} />;
+  return <ProfileScreen user={state.user} />;
 }

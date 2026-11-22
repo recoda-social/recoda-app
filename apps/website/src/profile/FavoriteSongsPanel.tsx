@@ -1,25 +1,17 @@
 import { props } from "@stylexjs/stylex";
 import type { StyleXStyles } from "@stylexjs/stylex";
-import { Dialog, DialogTrigger } from "@ui-sdk/react/dialog";
 import { MusicNoteIcon, PlusIcon } from "#/chat/icons";
 import { artworkUrl, searchSongs } from "#/lib/musickit";
 import type { AppleSong } from "#/lib/musickit";
 import type { FavoriteSongItem } from "#/lib/profile";
 import { PreviewToggle } from "#/songs/PreviewToggle";
-import {
-  EditFavoriteDialog,
-  FavoriteDialogContent,
-  FavoriteDialogFooter,
-  FavoriteDialogForm,
-  FavoriteSearchSection,
-  FavoriteSelectedBox,
-  useFavoriteAddDraft,
-} from "./FavoriteDialog";
-import { FavoriteDecorationFields } from "./FavoriteDecorationEditor";
+import { createFavoriteAddContext, EditFavoriteDialog, FavoriteDialog } from "./FavoriteDialog";
 import { FavoritePanel } from "./FavoritePanel";
 import { FavoriteRow } from "./FavoriteRow";
 import { favoriteStyles as styles } from "./favorite-styles";
 import { useProfile } from "./ProfileContext";
+
+const SongAddDialog = createFavoriteAddContext<AppleSong>();
 
 function SongArt({ song, size, style }: { song: AppleSong; size: number; style: StyleXStyles }) {
   const { artwork } = song.attributes;
@@ -38,102 +30,92 @@ function SongArt({ song, size, style }: { song: AppleSong; size: number; style: 
   );
 }
 
-function AddFavoriteSongDialog() {
-  const { state, actions, meta } = useProfile();
-  const draft = useFavoriteAddDraft<AppleSong>(searchSongs);
-  const { selected } = draft;
-
-  const atLimit = state.favoriteSongs.length >= meta.favoriteLimit;
+function AddFavoriteSongBody() {
+  const { state } = useProfile();
+  const { state: searchState, actions: searchActions } = SongAddDialog.useFavoriteAdd();
+  const { selected } = searchState;
   const existingIsrcs = new Set(state.favoriteSongs.map((item) => item.song.isrc.toUpperCase()));
-  const canSave =
-    Boolean(selected?.attributes.isrc) && draft.isDecorationValid && !state.isSavingSongs;
-
-  const handleSave = (event: { preventDefault: () => void }) => {
-    event.preventDefault();
-    if (!canSave) {
-      return;
-    }
-    void draft.save(actions.addFavoriteSong);
-  };
 
   return (
-    <Dialog open={draft.open} onOpenChange={draft.onOpenChange}>
-      <DialogTrigger disabled={atLimit} {...props(styles.addBtn)}>
+    <FavoriteDialog.Form>
+      {selected ? (
+        <FavoriteDialog.SelectedBox resetLabel="別の曲を選ぶ">
+          <SongArt song={selected} size={44} style={styles.art} />
+          <div {...props(styles.meta)}>
+            <span {...props(styles.title)}>{selected.attributes.name}</span>
+            <span {...props(styles.sub)}>{selected.attributes.artistName}</span>
+          </div>
+        </FavoriteDialog.SelectedBox>
+      ) : (
+        <FavoriteDialog.SearchSection
+          name="song-search"
+          label="曲を検索"
+          placeholder="曲名やアーティスト名を入力…"
+          idleMessage="キーワードを入力して曲を検索してください"
+          notFoundMessage="一致する曲が見つかりませんでした"
+        >
+          <ul {...props(styles.resultList)} aria-label="曲の検索結果">
+            {searchState.results.map((song) => {
+              const isrc = song.attributes.isrc;
+              const alreadyAdded = Boolean(isrc && existingIsrcs.has(isrc.toUpperCase()));
+              const disabled = !isrc || alreadyAdded;
+              return (
+                <li key={song.id} {...props(styles.resultRow)}>
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => searchActions.select(song)}
+                    {...props(styles.resultSelectBtn)}
+                  >
+                    <SongArt song={song} size={38} style={styles.resultArt} />
+                    <span {...props(styles.meta)}>
+                      <span {...props(styles.title)}>{song.attributes.name}</span>
+                      <span {...props(styles.sub)}>{song.attributes.artistName}</span>
+                    </span>
+                    {alreadyAdded ? (
+                      <span {...props(styles.badge)}>登録済み</span>
+                    ) : !isrc ? (
+                      <span {...props(styles.badge)}>選択不可</span>
+                    ) : null}
+                  </button>
+                  <PreviewToggle song={song} title={song.attributes.name} style={styles.iconBtn} />
+                </li>
+              );
+            })}
+          </ul>
+        </FavoriteDialog.SearchSection>
+      )}
+
+      {selected ? <FavoriteDialog.DecorationFields /> : null}
+
+      <FavoriteDialog.Footer idleLabel="リストに追加" savingLabel="追加中…" />
+    </FavoriteDialog.Form>
+  );
+}
+
+function AddFavoriteSongDialog() {
+  const { state, actions, meta } = useProfile();
+  const atLimit = state.favoriteSongs.length >= meta.favoriteLimit;
+
+  return (
+    <SongAddDialog.AddProvider
+      searchFn={searchSongs}
+      isSelectable={(song) => Boolean(song.attributes.isrc)}
+      saving={state.isSavingSongs}
+      fieldPrefix="add-song"
+      onAdd={actions.addFavoriteSong}
+    >
+      <FavoriteDialog.Trigger disabled={atLimit} {...props(styles.addBtn)}>
         <PlusIcon />
         <span>好きな曲を追加</span>
-      </DialogTrigger>
-      <FavoriteDialogContent
+      </FavoriteDialog.Trigger>
+      <FavoriteDialog.Content
         title="好きな曲を追加"
         description={`Apple Music から曲を検索して、最大 ${meta.favoriteLimit} 曲まで登録できます。`}
       >
-        <FavoriteDialogForm onSubmit={handleSave}>
-          {selected ? (
-            <FavoriteSelectedBox resetLabel="別の曲を選ぶ" onReset={() => draft.setSelected(null)}>
-              <SongArt song={selected} size={44} style={styles.art} />
-              <div {...props(styles.meta)}>
-                <span {...props(styles.title)}>{selected.attributes.name}</span>
-                <span {...props(styles.sub)}>{selected.attributes.artistName}</span>
-              </div>
-            </FavoriteSelectedBox>
-          ) : (
-            <FavoriteSearchSection
-              name="song-search"
-              label="曲を検索"
-              placeholder="曲名やアーティスト名を入力…"
-              idleMessage="キーワードを入力して曲を検索してください"
-              notFoundMessage="一致する曲が見つかりませんでした"
-              search={draft.search}
-            >
-              <ul {...props(styles.resultList)} aria-label="曲の検索結果">
-                {draft.search.results.map((song) => {
-                  const isrc = song.attributes.isrc;
-                  const alreadyAdded = Boolean(isrc && existingIsrcs.has(isrc.toUpperCase()));
-                  const disabled = !isrc || alreadyAdded;
-                  return (
-                    <li key={song.id} {...props(styles.resultRow)}>
-                      <button
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => draft.setSelected(song)}
-                        {...props(styles.resultSelectBtn)}
-                      >
-                        <SongArt song={song} size={38} style={styles.resultArt} />
-                        <span {...props(styles.meta)}>
-                          <span {...props(styles.title)}>{song.attributes.name}</span>
-                          <span {...props(styles.sub)}>{song.attributes.artistName}</span>
-                        </span>
-                        {alreadyAdded ? (
-                          <span {...props(styles.badge)}>登録済み</span>
-                        ) : !isrc ? (
-                          <span {...props(styles.badge)}>選択不可</span>
-                        ) : null}
-                      </button>
-                      <PreviewToggle
-                        song={song}
-                        title={song.attributes.name}
-                        style={styles.iconBtn}
-                      />
-                    </li>
-                  );
-                })}
-              </ul>
-            </FavoriteSearchSection>
-          )}
-
-          {selected ? (
-            <FavoriteDecorationFields
-              value={draft.decoration}
-              onChange={draft.setDecoration}
-              fieldPrefix="add-song"
-            />
-          ) : null}
-
-          <FavoriteDialogFooter disabled={!canSave}>
-            {state.isSavingSongs ? "追加中…" : "リストに追加"}
-          </FavoriteDialogFooter>
-        </FavoriteDialogForm>
-      </FavoriteDialogContent>
-    </Dialog>
+        <AddFavoriteSongBody />
+      </FavoriteDialog.Content>
+    </SongAddDialog.AddProvider>
   );
 }
 
@@ -153,10 +135,19 @@ function FavoriteSongRow({
     state.catalogSongs.byIsrc.get(item.song.isrc.toUpperCase());
 
   return (
-    <FavoriteRow.Root color={item.color}>
+    <FavoriteRow.Root
+      color={item.color}
+      index={index}
+      total={total}
+      saving={state.isSavingSongs}
+      label={title}
+      noun="好きな曲"
+      onMove={(direction) => void actions.moveFavoriteSong(index, direction)}
+      onRemove={() => actions.removeFavoriteSong(item.song.isrc)}
+    >
       <FavoriteRow.Main>
-        <FavoriteRow.Rank index={index} />
-        <FavoriteRow.Art
+        <FavoriteRow.Rank />
+        <FavoriteRow.SquareArt
           src={item.song.artworkUrl}
           emoji={item.emoji}
           fallback={<MusicNoteIcon />}
@@ -182,13 +173,7 @@ function FavoriteSongRow({
           {catalogSong ? (
             <PreviewToggle song={catalogSong} title={title} style={styles.iconBtn} />
           ) : null}
-          <FavoriteRow.MoveButtons
-            label={title}
-            index={index}
-            total={total}
-            saving={state.isSavingSongs}
-            onMove={(direction) => void actions.moveFavoriteSong(index, direction)}
-          />
+          <FavoriteRow.MoveButtons />
           <EditFavoriteDialog
             title={title}
             initial={{ comment: item.comment, emoji: item.emoji, color: item.color }}
@@ -196,12 +181,7 @@ function FavoriteSongRow({
             saving={state.isSavingSongs}
             onSave={(decoration) => actions.updateFavoriteSong(item.song.isrc, decoration)}
           />
-          <FavoriteRow.RemoveDialog
-            label={title}
-            noun="好きな曲"
-            saving={state.isSavingSongs}
-            onRemove={() => actions.removeFavoriteSong(item.song.isrc)}
-          />
+          <FavoriteRow.RemoveDialog />
         </FavoriteRow.Actions>
       </FavoriteRow.Main>
 

@@ -7,7 +7,8 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@ui-sdk/react/popover";
-import { useMemo, useState } from "react";
+import { createContext, use, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { artworkUrl } from "#/lib/musickit";
 import { useMediaQuery } from "#/lib/use-media-query";
 import { motion } from "#/motion.stylex";
@@ -35,10 +36,38 @@ import {
 } from "./calendar-utils";
 import { useListeningLog } from "./ListeningLogContext";
 
-function TargetDatePickerPill() {
+type TargetDatePickerContextValue = {
+  state: {
+    open: boolean;
+    selectedDate: string;
+    pickerYear: number;
+    pickerMonth: number;
+    cells: ReturnType<typeof buildMonthGrid>;
+    quickDayItems: ReadonlyArray<{ label: string; key: string }>;
+  };
+  actions: {
+    onOpenChange: (nextOpen: boolean) => void;
+    pickDate: (dateKey: string) => void;
+    shiftPickerMonth: (delta: number) => void;
+  };
+  meta: {
+    triggerLabel: string;
+  };
+};
+
+const TargetDatePickerContext = createContext<TargetDatePickerContextValue | null>(null);
+
+function useTargetDatePicker() {
+  const value = use(TargetDatePickerContext);
+  if (!value) {
+    throw new Error("TargetDatePicker の部品は TargetDatePickerProvider の中で使う");
+  }
+  return value;
+}
+
+function TargetDatePickerProvider({ children }: { children: ReactNode }) {
   const { state, actions } = useListeningLog();
   const { selectedDate, todayKey } = state;
-  const compact = useMediaQuery("(max-width: 540px)");
   const [open, setOpen] = useState(false);
   const initial = parseDateKey(selectedDate);
   const [pickerYear, setPickerYear] = useState(initial.year);
@@ -49,6 +78,15 @@ function TargetDatePickerPill() {
   const cells = useMemo(
     () => buildMonthGrid(pickerYear, pickerMonth, todayKey),
     [pickerYear, pickerMonth, todayKey],
+  );
+
+  const quickDayItems = useMemo(
+    () => [
+      { label: "今日", key: todayKey },
+      { label: "昨日", key: yesterdayKey },
+      { label: "一昨日", key: twoDaysAgoKey },
+    ],
+    [todayKey, yesterdayKey, twoDaysAgoKey],
   );
 
   const pickDate = (dateKey: string) => {
@@ -62,7 +100,7 @@ function TargetDatePickerPill() {
     setPickerMonth(next.getMonth());
   };
 
-  const handleOpenChange = (nextOpen: boolean) => {
+  const onOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
     if (nextOpen) {
       const parts = parseDateKey(selectedDate);
@@ -71,23 +109,35 @@ function TargetDatePickerPill() {
     }
   };
 
-  const quickDayItems = [
-    { label: "今日", key: todayKey },
-    { label: "昨日", key: yesterdayKey },
-    { label: "一昨日", key: twoDaysAgoKey },
-  ];
-
   const triggerLabel = `登録先の日付を変更（現在: ${formatJapaneseDate(selectedDate)}）`;
 
-  const miniMonthBody = (
+  return (
+    <TargetDatePickerContext
+      value={{
+        state: { open, selectedDate, pickerYear, pickerMonth, cells, quickDayItems },
+        actions: { onOpenChange, pickDate, shiftPickerMonth },
+        meta: { triggerLabel },
+      }}
+    >
+      {children}
+    </TargetDatePickerContext>
+  );
+}
+
+function MiniMonthGrid() {
+  const { state, actions } = useTargetDatePicker();
+
+  return (
     <>
       <div {...props(styles.miniMonthHead)}>
-        <span {...props(styles.miniMonthTitle)}>{formatMonthHeading(pickerYear, pickerMonth)}</span>
+        <span {...props(styles.miniMonthTitle)}>
+          {formatMonthHeading(state.pickerYear, state.pickerMonth)}
+        </span>
         <div {...props(styles.miniMonthNav)}>
           <Button
             type="button"
             aria-label="前の月"
-            onClick={() => shiftPickerMonth(-1)}
+            onClick={() => actions.shiftPickerMonth(-1)}
             {...props(styles.miniNavBtn)}
           >
             <ChevronLeftIcon />
@@ -95,7 +145,7 @@ function TargetDatePickerPill() {
           <Button
             type="button"
             aria-label="次の月"
-            onClick={() => shiftPickerMonth(1)}
+            onClick={() => actions.shiftPickerMonth(1)}
             {...props(styles.miniNavBtn)}
           >
             <ChevronRightIcon />
@@ -109,15 +159,15 @@ function TargetDatePickerPill() {
             {w}
           </span>
         ))}
-        {cells.map((cell) => {
-          const isSelected = cell.dateKey === selectedDate;
+        {state.cells.map((cell) => {
+          const isSelected = cell.dateKey === state.selectedDate;
           return (
             <button
               key={cell.dateKey}
               type="button"
               aria-pressed={isSelected}
               aria-label={formatJapaneseDate(cell.dateKey)}
-              onClick={() => pickDate(cell.dateKey)}
+              onClick={() => actions.pickDate(cell.dateKey)}
               {...props(
                 styles.miniDayBtn,
                 !cell.inCurrentMonth && styles.miniDayMuted,
@@ -132,44 +182,50 @@ function TargetDatePickerPill() {
       </div>
     </>
   );
+}
 
-  if (compact) {
-    return (
-      <BottomSheetDrawer.Root open={open} onOpenChange={handleOpenChange}>
-        <BottomSheetDrawer.Trigger aria-label={triggerLabel} {...props(styles.datePillTrigger)}>
-          <span>登録先: {formatJapaneseDate(selectedDate)}</span>
-          <ChevronDownIcon />
-        </BottomSheetDrawer.Trigger>
-        <BottomSheetDrawer.Content>
-          <div {...props(styles.datePopoverHead)}>
-            <BottomSheetDrawer.Title {...props(styles.datePopoverTitle)}>
-              登録先の日付を選ぶ
-            </BottomSheetDrawer.Title>
-          </div>
-          <div {...props(styles.quickDays)}>
-            {quickDayItems.map((item) => {
-              const active = selectedDate === item.key;
-              return (
-                <BottomSheetDrawer.Close
-                  key={item.key}
-                  onClick={() => pickDate(item.key)}
-                  {...props(styles.quickDayBtn, active && styles.quickDayBtnActive)}
-                >
-                  {item.label}
-                </BottomSheetDrawer.Close>
-              );
-            })}
-          </div>
-          {miniMonthBody}
-        </BottomSheetDrawer.Content>
-      </BottomSheetDrawer.Root>
-    );
-  }
+function MobileTargetDatePicker() {
+  const { state, actions, meta } = useTargetDatePicker();
 
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger aria-label={triggerLabel} {...props(styles.datePillTrigger)}>
-        <span>登録先: {formatJapaneseDate(selectedDate)}</span>
+    <BottomSheetDrawer.Root open={state.open} onOpenChange={actions.onOpenChange}>
+      <BottomSheetDrawer.Trigger aria-label={meta.triggerLabel} {...props(styles.datePillTrigger)}>
+        <span>登録先: {formatJapaneseDate(state.selectedDate)}</span>
+        <ChevronDownIcon />
+      </BottomSheetDrawer.Trigger>
+      <BottomSheetDrawer.Content>
+        <div {...props(styles.datePopoverHead)}>
+          <BottomSheetDrawer.Title {...props(styles.datePopoverTitle)}>
+            登録先の日付を選ぶ
+          </BottomSheetDrawer.Title>
+        </div>
+        <div {...props(styles.quickDays)}>
+          {state.quickDayItems.map((item) => {
+            const active = state.selectedDate === item.key;
+            return (
+              <BottomSheetDrawer.Close
+                key={item.key}
+                onClick={() => actions.pickDate(item.key)}
+                {...props(styles.quickDayBtn, active && styles.quickDayBtnActive)}
+              >
+                {item.label}
+              </BottomSheetDrawer.Close>
+            );
+          })}
+        </div>
+        <MiniMonthGrid />
+      </BottomSheetDrawer.Content>
+    </BottomSheetDrawer.Root>
+  );
+}
+
+function DesktopTargetDatePicker() {
+  const { state, actions, meta } = useTargetDatePicker();
+
+  return (
+    <Popover open={state.open} onOpenChange={actions.onOpenChange}>
+      <PopoverTrigger aria-label={meta.triggerLabel} {...props(styles.datePillTrigger)}>
+        <span>登録先: {formatJapaneseDate(state.selectedDate)}</span>
         <ChevronDownIcon />
       </PopoverTrigger>
 
@@ -179,12 +235,12 @@ function TargetDatePickerPill() {
         </div>
 
         <div {...props(styles.quickDays)}>
-          {quickDayItems.map((item) => {
-            const active = selectedDate === item.key;
+          {state.quickDayItems.map((item) => {
+            const active = state.selectedDate === item.key;
             return (
               <PopoverClose
                 key={item.key}
-                onClick={() => pickDate(item.key)}
+                onClick={() => actions.pickDate(item.key)}
                 {...props(styles.quickDayBtn, active && styles.quickDayBtnActive)}
               >
                 {item.label}
@@ -193,9 +249,19 @@ function TargetDatePickerPill() {
           })}
         </div>
 
-        {miniMonthBody}
+        <MiniMonthGrid />
       </PopoverContent>
     </Popover>
+  );
+}
+
+function TargetDatePickerPill() {
+  const compact = useMediaQuery("(max-width: 540px)");
+
+  return (
+    <TargetDatePickerProvider>
+      {compact ? <MobileTargetDatePicker /> : <DesktopTargetDatePicker />}
+    </TargetDatePickerProvider>
   );
 }
 

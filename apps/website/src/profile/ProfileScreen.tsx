@@ -1,13 +1,10 @@
 import { create, props as stylexProps } from "@stylexjs/stylex";
-import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@ui-sdk/react/button";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { Tabs, TabsIndicator, TabsList, TabsPanel, TabsTab } from "@ui-sdk/react/tabs";
 import { chatMedia, chatTokens as t } from "#/chat/tokens.stylex";
-import { authClient } from "#/lib/auth-client";
-import { meQuery } from "#/lib/auth";
 import type { Me } from "#/lib/auth";
 import { motion } from "#/motion.stylex";
 import { AppShell } from "#/shell/AppShell";
@@ -41,22 +38,6 @@ function ProfileTab({ value, children }: { value: string; children: ReactNode })
 
 function ProfileWorkspaceContent() {
   const { state } = useProfile();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const player = usePreviewPlayer();
-  const { preloadAppleMusic } = player.actions;
-
-  useEffect(() => {
-    preloadAppleMusic();
-  }, [preloadAppleMusic]);
-
-  const handleSignOut = () => {
-    player.actions.close();
-    void authClient.signOut().then(async () => {
-      await queryClient.invalidateQueries({ queryKey: meQuery.queryKey });
-      await navigate({ to: "/" });
-    });
-  };
 
   return (
     <div {...stylexProps(styles.shell)}>
@@ -73,7 +54,7 @@ function ProfileWorkspaceContent() {
             </Link>
           </div>
 
-          <AppShell.SignOutButton onClick={handleSignOut} />
+          <AppShell.SignOutButton />
         </AppShell.Topbar>
 
         <MiniPlayerBar />
@@ -115,6 +96,12 @@ function ProfileWorkspaceContent() {
 }
 
 export function ProfileScreen({ user }: { user: Me }) {
+  const { preloadAppleMusic } = usePreviewPlayer().actions;
+
+  useEffect(() => {
+    preloadAppleMusic();
+  }, [preloadAppleMusic]);
+
   return (
     <ProfileProvider user={user}>
       <ProfileWorkspaceContent />

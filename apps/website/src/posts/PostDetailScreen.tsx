@@ -1,24 +1,20 @@
 import { create, props } from "@stylexjs/stylex";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/react/avatar";
 import { Button } from "@ui-sdk/react/button";
 import { Toggle } from "@ui-sdk/react/toggle";
-import { useEffect, useMemo, useState } from "react";
 import { MusicNoteIcon } from "#/chat/icons";
 import { chatMedia, chatTokens as t } from "#/chat/tokens.stylex";
-import { meQuery } from "#/lib/auth";
-import { authClient } from "#/lib/auth-client";
-import { artworkUrl, catalogSongsQuery } from "#/lib/musickit";
+import { artworkUrl } from "#/lib/musickit";
 import type { AppleSong } from "#/lib/musickit";
-import { postQuery, similarPostsQuery } from "#/lib/posts";
 import type { PostView } from "#/lib/posts";
 import { motion } from "#/motion.stylex";
 import { ArrowLeftIcon } from "#/profile/icons";
 import { AppShell } from "#/shell/AppShell";
 import { MiniPlayerBar } from "#/songs/MiniPlayerBar";
-import { usePreviewPlayer } from "#/songs/preview-player";
 import { PreviewToggle } from "#/songs/PreviewToggle";
+import { usePostDetail } from "./PostDetailContext";
+import { PostDetailProvider } from "./PostDetailProvider";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("ja-JP", {
   year: "numeric",
@@ -126,172 +122,154 @@ function SimilarPostCard({ post, catalogSong }: { post: PostView; catalogSong?: 
   );
 }
 
-function PostDetailContent({ postId }: { postId: string }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [includeSameSong, setIncludeSameSong] = useState(false);
-
-  const postResult = useQuery(postQuery(postId));
-  const similarResult = useQuery({
-    ...similarPostsQuery(postId, includeSameSong),
-    enabled: postResult.isSuccess,
-  });
-
-  const similarPosts = useMemo(() => similarResult.data?.posts ?? [], [similarResult.data?.posts]);
-  const postAppleSongId = postResult.data?.song?.appleSongId;
-  const songIds = useMemo(() => {
-    const ids: Array<string> = [];
-    if (postAppleSongId) {
-      ids.push(postAppleSongId);
-    }
-    for (const post of similarPosts) {
-      if (post.song?.appleSongId) {
-        ids.push(post.song.appleSongId);
-      }
-    }
-    return ids;
-  }, [postAppleSongId, similarPosts]);
-
-  const catalogQuery = useQuery(catalogSongsQuery(songIds));
-  const catalogSongs = useMemo(() => {
-    const byId = new Map<string, AppleSong>();
-    const byIsrc = new Map<string, AppleSong>();
-    for (const song of catalogQuery.data ?? []) {
-      byId.set(song.id, song);
-      if (song.attributes.isrc) {
-        byIsrc.set(song.attributes.isrc.toUpperCase(), song);
-      }
-    }
-    return { byId, byIsrc };
-  }, [catalogQuery.data]);
-
-  const lookupSong = (post: PostView) =>
-    post.song
-      ? (catalogSongs.byId.get(post.song.appleSongId) ??
-        catalogSongs.byIsrc.get(post.song.isrc.toUpperCase()))
-      : undefined;
-
-  const player = usePreviewPlayer();
-  const { preloadAppleMusic } = player.actions;
-
-  useEffect(() => {
-    preloadAppleMusic();
-  }, [preloadAppleMusic]);
-
-  const handleSignOut = () => {
-    player.actions.close();
-    void authClient.signOut().then(async () => {
-      await queryClient.invalidateQueries({ queryKey: meQuery.queryKey });
-      await navigate({ to: "/" });
-    });
-  };
-
+function PostDetailHeader() {
   return (
-    <div {...props(styles.shell)}>
-      <div {...props(styles.stickyHeader)}>
-        <AppShell.Topbar>
-          <div {...props(styles.leftNav)}>
-            <Button render={<Link to="/" />} {...props(styles.backBtn)}>
-              <ArrowLeftIcon />
-              <span>ホーム</span>
-            </Button>
-            <Link to="/" {...props(styles.brand)}>
-              <AppShell.BrandIcon />
-              <AppShell.BrandName style={styles.brandName} />
-            </Link>
-          </div>
-
-          <AppShell.SignOutButton onClick={handleSignOut} />
-        </AppShell.Topbar>
-
-        <MiniPlayerBar />
-      </div>
-
-      <main {...props(styles.main)}>
-        <div {...props(styles.inner)}>
-          {postResult.isPending ? (
-            <div {...props(styles.stateBox)} aria-busy="true">
-              投稿を読み込んでいます…
-            </div>
-          ) : postResult.isError ? (
-            <div role="alert" {...props(styles.errorBox)}>
-              <p {...props(styles.errorMessage)}>{postResult.error.message}</p>
-              <Button render={<Link to="/" />} {...props(styles.errorAction)}>
-                ホームに戻る
-              </Button>
-            </div>
-          ) : (
-            <>
-              <section aria-label="あなたの投稿" {...props(styles.postCard)}>
-                <SongRow post={postResult.data} catalogSong={lookupSong(postResult.data)} />
-                <p {...props(styles.postContent)}>{postResult.data.content}</p>
-                <footer {...props(styles.postFooter)}>
-                  <time dateTime={postResult.data.createdAt} {...props(styles.timestamp)}>
-                    {formatDateTime(postResult.data.createdAt)}
-                  </time>
-                </footer>
-              </section>
-
-              <section aria-labelledby="similar-section-heading" {...props(styles.section)}>
-                <div {...props(styles.sectionHeader)}>
-                  <div {...props(styles.sectionTitleGroup)}>
-                    <h2 id="similar-section-heading" {...props(styles.sectionTitle)}>
-                      近い感覚の曲
-                    </h2>
-                    {similarResult.data && !similarResult.data.expired ? (
-                      <span {...props(styles.expiryHint)}>
-                        {formatExpiresAt(similarResult.data.expiresAt)} まで閲覧可能
-                      </span>
-                    ) : null}
-                  </div>
-                  {similarResult.data && !similarResult.data.expired ? (
-                    <Toggle
-                      {...props(styles.filterToggle, includeSameSong && styles.filterTogglePressed)}
-                      pressed={includeSameSong}
-                      onPressedChange={setIncludeSameSong}
-                    >
-                      同じ曲も含める
-                    </Toggle>
-                  ) : null}
-                </div>
-
-                {similarResult.isPending ? (
-                  <div {...props(styles.stateBox)} aria-busy="true">
-                    検索結果を読み込んでいます…
-                  </div>
-                ) : similarResult.isError ? (
-                  <p role="alert" {...props(styles.inlineError)}>
-                    {similarResult.error.message}
-                  </p>
-                ) : similarResult.data?.expired ? (
-                  <div {...props(styles.expiredCard)}>
-                    <p {...props(styles.expiredTitle)}>検索結果の閲覧期限（24時間）を過ぎました</p>
-                    <p {...props(styles.expiredDesc)}>
-                      投稿した感想は引き続きいつでもこのページから見返せます。
-                    </p>
-                  </div>
-                ) : similarPosts.length > 0 ? (
-                  <div {...props(styles.similarList)}>
-                    {similarPosts.map((post) => (
-                      <SimilarPostCard key={post.id} post={post} catalogSong={lookupSong(post)} />
-                    ))}
-                  </div>
-                ) : (
-                  <div {...props(styles.expiredCard)}>
-                    <p {...props(styles.expiredDesc)}>まだ近い感覚の感想は見つかりませんでした。</p>
-                  </div>
-                )}
-              </section>
-            </>
-          )}
+    <div {...props(styles.stickyHeader)}>
+      <AppShell.Topbar>
+        <div {...props(styles.leftNav)}>
+          <Button render={<Link to="/" />} {...props(styles.backBtn)}>
+            <ArrowLeftIcon />
+            <span>ホーム</span>
+          </Button>
+          <Link to="/" {...props(styles.brand)}>
+            <AppShell.BrandIcon />
+            <AppShell.BrandName style={styles.brandName} />
+          </Link>
         </div>
-      </main>
+
+        <AppShell.SignOutButton />
+      </AppShell.Topbar>
+
+      <MiniPlayerBar />
     </div>
   );
 }
 
+function PostArticleCard() {
+  const { state, actions } = usePostDetail();
+  if (!state.post) {
+    return null;
+  }
+
+  return (
+    <section aria-label="あなたの投稿" {...props(styles.postCard)}>
+      <SongRow post={state.post} catalogSong={actions.lookupCatalogSong(state.post)} />
+      <p {...props(styles.postContent)}>{state.post.content}</p>
+      <footer {...props(styles.postFooter)}>
+        <time dateTime={state.post.createdAt} {...props(styles.timestamp)}>
+          {formatDateTime(state.post.createdAt)}
+        </time>
+      </footer>
+    </section>
+  );
+}
+
+function SimilarPostsSection() {
+  const { state, actions } = usePostDetail();
+  const {
+    similarPosts,
+    isSimilarPending,
+    similarError,
+    similarExpired,
+    similarExpiresAt,
+    includeSameSong,
+  } = state;
+
+  return (
+    <section aria-labelledby="similar-section-heading" {...props(styles.section)}>
+      <div {...props(styles.sectionHeader)}>
+        <div {...props(styles.sectionTitleGroup)}>
+          <h2 id="similar-section-heading" {...props(styles.sectionTitle)}>
+            近い感覚の曲
+          </h2>
+          {similarExpiresAt ? (
+            <span {...props(styles.expiryHint)}>
+              {formatExpiresAt(similarExpiresAt)} まで閲覧可能
+            </span>
+          ) : null}
+        </div>
+        {similarExpiresAt ? (
+          <Toggle
+            {...props(styles.filterToggle, includeSameSong && styles.filterTogglePressed)}
+            pressed={includeSameSong}
+            onPressedChange={actions.setIncludeSameSong}
+          >
+            同じ曲も含める
+          </Toggle>
+        ) : null}
+      </div>
+
+      {isSimilarPending ? (
+        <div {...props(styles.stateBox)} aria-busy="true">
+          検索結果を読み込んでいます…
+        </div>
+      ) : similarError ? (
+        <p role="alert" {...props(styles.inlineError)}>
+          {similarError}
+        </p>
+      ) : similarExpired ? (
+        <div {...props(styles.expiredCard)}>
+          <p {...props(styles.expiredTitle)}>検索結果の閲覧期限（24時間）を過ぎました</p>
+          <p {...props(styles.expiredDesc)}>
+            投稿した感想は引き続きいつでもこのページから見返せます。
+          </p>
+        </div>
+      ) : similarPosts.length > 0 ? (
+        <div {...props(styles.similarList)}>
+          {similarPosts.map((post) => (
+            <SimilarPostCard
+              key={post.id}
+              post={post}
+              catalogSong={actions.lookupCatalogSong(post)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div {...props(styles.expiredCard)}>
+          <p {...props(styles.expiredDesc)}>まだ近い感覚の感想は見つかりませんでした。</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PostDetailBody() {
+  const { state } = usePostDetail();
+
+  return (
+    <main {...props(styles.main)}>
+      <div {...props(styles.inner)}>
+        {state.isPostPending ? (
+          <div {...props(styles.stateBox)} aria-busy="true">
+            投稿を読み込んでいます…
+          </div>
+        ) : state.postError ? (
+          <div role="alert" {...props(styles.errorBox)}>
+            <p {...props(styles.errorMessage)}>{state.postError}</p>
+            <Button render={<Link to="/" />} {...props(styles.errorAction)}>
+              ホームに戻る
+            </Button>
+          </div>
+        ) : (
+          <>
+            <PostArticleCard />
+            <SimilarPostsSection />
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
+
 export function PostDetailScreen({ postId }: { postId: string }) {
-  return <PostDetailContent postId={postId} />;
+  return (
+    <PostDetailProvider postId={postId}>
+      <div {...props(styles.shell)}>
+        <PostDetailHeader />
+        <PostDetailBody />
+      </div>
+    </PostDetailProvider>
+  );
 }
 
 const styles = create({

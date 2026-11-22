@@ -221,38 +221,46 @@ function Toolbar({ children }: { children: ReactNode }) {
   return <div {...props(styles.toolbar)}>{children}</div>;
 }
 
+function ToolGroup({ children }: { children: ReactNode }) {
+  return <div {...props(styles.tools)}>{children}</div>;
+}
+
 function PickSongButton() {
   const { actions } = useChat();
-  const { state: assistState, actions: assistActions } = useDraftAssist();
 
   return (
-    <div {...props(styles.tools)}>
-      <Button
-        type="button"
-        {...props(styles.toolBtn)}
-        aria-label="曲を検索して添付"
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={() => actions.openSongSearch("@")}
-      >
-        <PlusIcon />
-        <span>曲を選ぶ</span>
-      </Button>
-      <Button
-        type="button"
-        {...props(styles.toolBtn, styles.assistBtn)}
-        aria-label={`感想のヒントを表示（残り${assistState.remainingCount}回）`}
-        disabled={!assistState.canRequestAssist}
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={assistActions.requestAssist}
-      >
-        <SparklesIcon />
-        <span>
-          {assistState.isLoading
-            ? "考え中…"
-            : `感想を書き足すヒント (${assistState.remainingCount}/2)`}
-        </span>
-      </Button>
-    </div>
+    <Button
+      type="button"
+      {...props(styles.toolBtn)}
+      aria-label="曲を検索して添付"
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => actions.openSongSearch("@")}
+    >
+      <PlusIcon />
+      <span>曲を選ぶ</span>
+    </Button>
+  );
+}
+
+function AssistButton() {
+  const { state, actions, meta } = useDraftAssist();
+
+  return (
+    <Button
+      type="button"
+      {...props(styles.toolBtn, styles.assistBtn)}
+      aria-label={`感想のヒントを表示（残り${state.remainingCount}回）`}
+      disabled={!state.canRequestAssist}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={actions.requestAssist}
+    >
+      <SparklesIcon />
+      <span>
+        {state.isLoading
+          ? "考え中…"
+          : `感想を書き足すヒント (${state.remainingCount}/${meta.maxAssistCount})`}
+      </span>
+    </Button>
   );
 }
 
@@ -286,7 +294,9 @@ export const ChatComposer = {
   Attachment,
   Input,
   Toolbar,
+  ToolGroup,
   PickSongButton,
+  AssistButton,
   Submit,
 };
 

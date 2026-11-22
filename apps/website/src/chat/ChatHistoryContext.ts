@@ -27,9 +27,12 @@ type ChatHistoryActions = {
   setMobileOpen: (open: boolean) => void;
 };
 
+type ChatHistoryMeta = Record<string, never>;
+
 export type ChatHistoryContextValue = {
   state: ChatHistoryState;
   actions: ChatHistoryActions;
+  meta: ChatHistoryMeta;
 };
 
 export const ChatHistoryContext = createContext<ChatHistoryContextValue | null>(null);

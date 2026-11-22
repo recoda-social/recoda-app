@@ -1,10 +1,7 @@
 import { create, props } from "@stylexjs/stylex";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/react/avatar";
 import { useEffect, useRef } from "react";
-import { authClient } from "#/lib/auth-client";
-import { meQuery } from "#/lib/auth";
 import type { Me } from "#/lib/auth";
 import { motion } from "#/motion.stylex";
 import { MiniPlayerBar } from "#/songs/MiniPlayerBar";
@@ -30,12 +27,10 @@ function initials(name: string) {
 }
 
 function ChatShell({ user }: { user: Me }) {
-  const queryClient = useQueryClient();
   const shellRef = useRef<HTMLDivElement | null>(null);
   const { setKeyboardOpen } = useChat().actions;
   const { state: historyState } = useChatHistory();
-  const player = usePreviewPlayer();
-  const { preloadAppleMusic } = player.actions;
+  const { preloadAppleMusic } = usePreviewPlayer().actions;
   const showTopbarBrand = !(historyState.isDesktop && historyState.desktopOpen);
 
   useEffect(() => {
@@ -202,14 +197,7 @@ function ChatShell({ user }: { user: Me }) {
               </Avatar>
               <span {...props(styles.accountName)}>{user.name}</span>
             </Link>
-            <AppShell.SignOutButton
-              onClick={() => {
-                player.actions.close();
-                void authClient
-                  .signOut()
-                  .then(() => queryClient.invalidateQueries({ queryKey: meQuery.queryKey }));
-              }}
-            />
+            <AppShell.SignOutButton />
           </div>
         </AppShell.Topbar>
 
@@ -241,7 +229,10 @@ function ChatShell({ user }: { user: Me }) {
                 <ChatComposer.Input />
                 <ChatComposer.EmptyHints />
                 <ChatComposer.Toolbar>
-                  <ChatComposer.PickSongButton />
+                  <ChatComposer.ToolGroup>
+                    <ChatComposer.PickSongButton />
+                    <ChatComposer.AssistButton />
+                  </ChatComposer.ToolGroup>
                   <ChatComposer.Submit />
                 </ChatComposer.Toolbar>
               </ChatComposer.Form>
