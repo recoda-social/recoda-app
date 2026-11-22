@@ -34,7 +34,7 @@ export default defineConfig(({ isPreview }) => ({
       // 本番と Preview で同じ値にする。ローカルでは設定しない（apps/api/src/auth/auth.ts の plugins を参照）
       OAUTH_PROXY_SECRET: bindings.secret(),
       // ローカル開発時に Tailscale Serve 等のホストを許可する（本番・Preview では設定しない）
-      DEV_ALLOWED_HOST: bindings.secret(),
+      DEV_ALLOWED_HOST: bindings.text(""),
       // Apple Music API の開発者トークンを署名する鍵（Media Services を有効にした鍵）
       APPLE_TEAM_ID: bindings.secret(),
       APPLE_KEY_ID: bindings.secret(),
