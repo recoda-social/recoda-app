@@ -1,0 +1,35 @@
+# 仮説 H1（現行埋め込み空間のアーティスト・年代・文字数への漏れ）を D1 の x に対して診断する。
+# 手動で実行する。Turso や Workers AI 推論は使わず、D1（x_vectors）とリポジトリ内 JSON のみを使う。
+name: Diagnose embeddings
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 対象
+        type: choice
+        options: [staging, production]
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'staging' }}
+    concurrency:
+      group: embedding-diagnose-${{ inputs.environment || 'staging' }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          node-version: "24"
+          cache: true
+      - run: vp run api#embedding:diagnose
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKERS_AI_API_TOKEN: ${{ secrets.WORKERS_AI_API_TOKEN }}
+          # apps/api/cloudflare.config.ts の X_STORE と同じ名前
+          X_STORE_NAME: ${{ (inputs.environment || 'staging') == 'staging' && 'x-store-staging-01' || 'x-store-01' }}
