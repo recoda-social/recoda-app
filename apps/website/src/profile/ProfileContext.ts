@@ -45,6 +45,7 @@ type ProfileActions = {
   deletePost: (postId: string) => Promise<void>;
   toggleLike: (postId: string, liked: boolean) => Promise<void>;
   fetchMorePosts: () => void;
+  recordPlayedSong: (song: { songId: string; isrc: string }) => void;
 };
 
 type ProfileMeta = {

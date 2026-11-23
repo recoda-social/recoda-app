@@ -17,6 +17,7 @@ type PostDetailState = {
 type PostDetailActions = {
   setIncludeSameSong: (include: boolean) => void;
   lookupCatalogSong: (post: PostView) => AppleSong | undefined;
+  recordPlayedSong: (song: { songId: string; isrc: string }) => void;
 };
 
 type PostDetailMeta = {

@@ -7,6 +7,7 @@ import type { AppleSong } from "#/lib/musickit";
 import { createPost } from "#/lib/posts";
 import { ChatContext } from "./ChatContext";
 import type { SongSearchTrigger } from "./ChatContext";
+import { getTodayDateKey } from "./listening/calendar-utils";
 import type { ChatTurn } from "./types";
 
 // API・DB の length() と同じコードポイント単位で数える（ADR 0012）。
@@ -167,6 +168,7 @@ export function ChatProvider({
       if (userPublicId) {
         void queryClient.invalidateQueries({ queryKey: ["users", "posts", userPublicId] });
       }
+      void queryClient.invalidateQueries({ queryKey: ["listening-logs"] });
     },
     onError: (error) => {
       setTurns((prev) => [
@@ -209,7 +211,7 @@ export function ChatProvider({
     setSelectedSong(null);
     setDraft("");
 
-    mutation.mutate({ songId: song.id, isrc, content });
+    mutation.mutate({ songId: song.id, isrc, content, listenedOn: getTodayDateKey() });
   };
 
   return (

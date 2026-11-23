@@ -9,9 +9,14 @@ import { insertPostWithIpLog } from "../repository.ts";
 import { postOutput } from "../schemas.ts";
 import type { createPostInput } from "../schemas.ts";
 
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+const todayDateKeyJst = (now = new Date()) =>
+  new Date(now.getTime() + JST_OFFSET_MS).toISOString().slice(0, 10);
+
 /**
  * 曲を選んで投稿する。
- * 曲が未保存なら Apple Music から取得して保存し、投稿と投稿時の IP アドレスを保存する。
+ * 曲が未保存なら Apple Music から取得して保存し、投稿と投稿時の IP アドレス、当日の聴いた曲ログを保存する。
  */
 export async function createPost<FetchError extends Error>({
   db,
@@ -36,10 +41,17 @@ export async function createPost<FetchError extends Error>({
     return song;
   }
 
+  const listenedOn = input.listenedOn ?? todayDateKeyJst();
   const post = await insertPostWithIpLog({
     db,
     post: { id: createPublicId(), userId: user.id, songIsrc: song.isrc, content: input.content },
     ipAddress,
+    listeningLog: {
+      id: createPublicId(),
+      userId: user.id,
+      songIsrc: song.isrc,
+      listenedOn,
+    },
   });
   if (post instanceof Error) {
     return post;

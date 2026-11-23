@@ -8,7 +8,12 @@ export type SimilarPostsResponse = InferResponseType<
   200
 >;
 
-export async function createPost(input: { songId: string; isrc: string; content: string }) {
+export async function createPost(input: {
+  songId: string;
+  isrc: string;
+  content: string;
+  listenedOn?: string;
+}) {
   const res = await client.api.posts.$post({ json: input });
   const body = await res.json();
   if ("error" in body) {

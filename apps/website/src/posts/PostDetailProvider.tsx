@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { useRecordTodayListeningLog } from "#/chat/listening/use-record-today-listening-log";
 import { catalogSongsQuery } from "#/lib/musickit";
 import type { AppleSong } from "#/lib/musickit";
 import { postQuery, similarPostsQuery } from "#/lib/posts";
@@ -59,6 +60,7 @@ export function PostDetailProvider({ postId, children }: { postId: string; child
     preloadAppleMusic();
   }, [preloadAppleMusic]);
 
+  const recordPlayedSong = useRecordTodayListeningLog();
   const similarData = similarResult.data;
 
   return (
@@ -78,6 +80,7 @@ export function PostDetailProvider({ postId, children }: { postId: string; child
         actions: {
           setIncludeSameSong,
           lookupCatalogSong,
+          recordPlayedSong,
         },
         meta: {
           postId,

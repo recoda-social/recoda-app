@@ -2,6 +2,7 @@ import { ISRC_LENGTH, posts, songs, users } from "db";
 import { POST_CONTENT_MAX } from "db/constants";
 import { createInsertSchema, createSelectSchema } from "drizzle-orm/zod";
 import { z } from "zod";
+import { dateKeySchema } from "../listening-logs/schemas.ts";
 import { songOutput } from "../songs/schemas.ts";
 
 // 検証の規則は drizzle のスキーマ（列の型、length）から作る。ここで足すのは、DB の CHECK 制約にあたる規則だけ。
@@ -16,6 +17,7 @@ const songInsert = createInsertSchema(songs, {
 export const createPostInput = postInsert.pick({ content: true }).extend({
   songId: songInsert.shape.appleSongId,
   isrc: songInsert.shape.isrc,
+  listenedOn: dateKeySchema.optional(),
 });
 
 /** 投稿 1 件の応答。内部のユーザー ID や件数の列は含めない。 */

@@ -3,6 +3,7 @@ import type { InfiniteData } from "@tanstack/react-query";
 import { FAVORITE_COMMENT_MAX, FAVORITE_LIMIT, USER_BIO_MAX, USER_NAME_MAX } from "db/constants";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { useRecordTodayListeningLog } from "#/chat/listening/use-record-today-listening-log";
 import { meQuery } from "#/lib/auth";
 import type { Me } from "#/lib/auth";
 import { AppToasts, useAppToast } from "#/shell/AppToasts";
@@ -309,6 +310,8 @@ function ProfileProviderContent({ user, children }: { user: Me; children: ReactN
     await saveArtistsMutation.mutateAsync(toArtistInputs(reordered));
   };
 
+  const recordPlayedSong = useRecordTodayListeningLog();
+
   return (
     <ProfileContext
       value={{
@@ -354,6 +357,7 @@ function ProfileProviderContent({ user, children }: { user: Me; children: ReactN
               void postsRes.fetchNextPage();
             }
           },
+          recordPlayedSong,
         },
         meta: {
           favoriteLimit: FAVORITE_LIMIT,

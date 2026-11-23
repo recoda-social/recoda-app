@@ -10,10 +10,12 @@ type PreviewToggleProps = {
   /** aria-label に使う曲名 */
   title: string;
   style?: StyleXStyles;
+  /** 再生を開始したときに呼ばれるコールバック（停止時は呼ばれない）。 */
+  onPlay?: () => void;
 };
 
 /** 試聴の再生・停止ボタン。試聴音源のない曲では何も描画しない。 */
-export function PreviewToggle({ song, title, style }: PreviewToggleProps) {
+export function PreviewToggle({ song, title, style, onPlay }: PreviewToggleProps) {
   const preview = usePreviewPlayer();
   if (!song.attributes.previews?.length) {
     return null;
@@ -24,7 +26,12 @@ export function PreviewToggle({ song, title, style }: PreviewToggleProps) {
     <Button
       type="button"
       aria-label={playing ? `${title} の試聴を停止` : `${title} を試聴`}
-      onClick={() => preview.actions.toggle(song)}
+      onClick={() => {
+        preview.actions.toggle(song);
+        if (!playing) {
+          onPlay?.();
+        }
+      }}
       {...props(style)}
     >
       {playing ? <PauseIcon /> : <PlayIcon />}

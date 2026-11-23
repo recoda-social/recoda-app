@@ -12,6 +12,7 @@ type SimilarPostsState = {
 type SimilarPostsActions = {
   setIncludeSameSong: (include: boolean) => void;
   lookupCatalogSong: (post: PostView) => AppleSong | undefined;
+  recordPlayedSong: (song: { songId: string; isrc: string }) => void;
 };
 
 type SimilarPostsMeta = {
