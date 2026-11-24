@@ -47,12 +47,16 @@ function ChatShell({ user }: { user: Me }) {
       backgroundColor: body.style.backgroundColor,
     };
     const prevAppHeight = appRoot?.style.height ?? "";
+    const prevAppBg = appRoot?.style.backgroundColor ?? "";
 
     const colorSchemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
     const syncBackground = () => {
       const bg = colorSchemeMedia.matches ? "#171717" : "#ffffff";
       html.style.backgroundColor = bg;
       body.style.backgroundColor = bg;
+      if (appRoot) {
+        appRoot.style.backgroundColor = bg;
+      }
     };
 
     html.style.width = "100%";
@@ -129,6 +133,7 @@ function ChatShell({ user }: { user: Me }) {
       body.style.backgroundColor = prevBody.backgroundColor;
       if (appRoot) {
         appRoot.style.height = prevAppHeight;
+        appRoot.style.backgroundColor = prevAppBg;
       }
       if (vv) {
         vv.removeEventListener("resize", sync);
@@ -280,8 +285,8 @@ const styles = create({
       [chatMedia.compact]: 12,
     },
     paddingBottom: {
-      default: 32,
-      [chatMedia.compact]: 16,
+      default: 88,
+      [chatMedia.compact]: 66,
     },
     paddingLeft: {
       default: 16,

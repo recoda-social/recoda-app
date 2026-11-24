@@ -481,6 +481,7 @@ const styles = create({
     display: "inline-flex",
     gap: 2,
     padding: 2,
+    pointerEvents: "auto",
     backgroundColor: t.bg,
     borderColor: t.border,
     borderStyle: "solid",
@@ -535,6 +536,7 @@ const styles = create({
     fontWeight: 500,
     fontVariantNumeric: "tabular-nums",
     color: t.text,
+    pointerEvents: "auto",
     cursor: "pointer",
     backgroundColor: {
       default: t.bg,
