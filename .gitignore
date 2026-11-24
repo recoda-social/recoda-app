@@ -38,3 +38,6 @@ dist-ssr
 
 # turso dev のローカルの DB（local.db と、その -wal・-shm などのファイル）
 local.db*
+
+# Vitest Browser Mode の出力・キャッシュ
+.vitest

@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import type { PluginOption } from "vite-plus";
 import { defineConfig, lazyPlugins, loadEnv } from "vite-plus";
+import { playwright } from "vite-plus/test/browser-playwright";
 import { devtools } from "@tanstack/devtools-vite";
 
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
@@ -24,7 +25,7 @@ const config = defineConfig(({ mode }) => {
   return {
     resolve: { tsconfigPaths: true },
     plugins: lazyPlugins((): Array<PluginOption> => [
-      devtools(),
+      ...(mode === "test" ? [] : [devtools()]),
       tanstackRouter({ target: "react", autoCodeSplitting: true }),
       // StyleX のドキュメントに従い、Fast Refresh を保つため @vitejs/plugin-react より前に置く。
       // useCSSLayers：StyleX が出力する CSS を @layer に入れ、後から書く CSS の詳細度と競合させない。
@@ -37,6 +38,21 @@ const config = defineConfig(({ mode }) => {
       }) as PluginOption,
       viteReact(),
     ]),
+    test: {
+      include: ["src/**/*.browser.test.{ts,tsx}"],
+      setupFiles: ["./src/test/browser-setup.ts"],
+      browser: {
+        enabled: true,
+        headless: true,
+        provider: playwright({
+          contextOptions: {
+            hasTouch: true,
+            isMobile: true,
+          },
+        }),
+        instances: [{ browser: "webkit" }],
+      },
+    },
     server: {
       allowedHosts: devAllowedHosts.length > 0 ? devAllowedHosts : undefined,
       proxy: {

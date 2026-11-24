@@ -10,7 +10,8 @@
     "dev:host": "vp dev --port 3000 --host",
     "generate-routes": "tsr generate",
     "build": "vp build",
-    "preview": "vp preview"
+    "preview": "vp preview",
+    "test:browser": "vp test"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "catalog:",
@@ -41,7 +42,9 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/browser-playwright": "catalog:",
     "jsdom": "catalog:",
+    "playwright": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"
