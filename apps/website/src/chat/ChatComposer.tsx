@@ -94,7 +94,7 @@ function Input() {
   const coarsePointer = useMediaQuery("(pointer: coarse)");
   const isMobile = compact || coarsePointer;
   const text = compact ? copy.compact : copy.full;
-  const { menuOpen, songs, highlightedIndex, keyboardOpen } = state;
+  const { menuOpen, songs, highlightedIndex } = state;
   const localTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { registerTextarea } = actions;
   const isComposingRef = useRef(false);
@@ -142,7 +142,7 @@ function Input() {
     const nextHeight = Math.min(el.scrollHeight, maxHeight);
     el.style.height = `${nextHeight}px`;
     el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
-  }, [state.draft, state.selectedSong, keyboardOpen, compact]);
+  }, [state.draft, state.selectedSong, compact]);
 
   return (
     <Textarea
