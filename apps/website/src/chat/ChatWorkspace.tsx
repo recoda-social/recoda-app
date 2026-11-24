@@ -1,19 +1,15 @@
 import { create, props } from "@stylexjs/stylex";
-import { Link } from "@tanstack/react-router";
-import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/react/avatar";
 import { useEffect, useLayoutEffect } from "react";
 import type { Me } from "#/lib/auth";
-import { MiniPlayerBar } from "#/songs/MiniPlayerBar";
 import { usePreviewPlayer } from "#/songs/preview-player";
 import { ChatComposer } from "./ChatComposer";
-import { ComposerDock } from "./ComposerDock";
-import { AppShell } from "#/shell/AppShell";
 import { useChat } from "./ChatContext";
-import { useChatHistory } from "./ChatHistoryContext";
 import { ChatHistoryProvider } from "./ChatHistoryProvider";
 import { ChatHistorySidebar } from "./ChatHistorySidebar";
 import { ChatProvider } from "./ChatProvider";
 import { ChatThread } from "./ChatThread";
+import { ChatTopChrome } from "./ChatTopChrome";
+import { ComposerDock } from "./ComposerDock";
 import { DraftAssistProvider } from "./DraftAssistProvider";
 import { ListeningCalendarStrip } from "./listening/ListeningCalendarStrip";
 import { ListeningDayShelf } from "./listening/ListeningDayShelf";
@@ -21,15 +17,9 @@ import { ListeningComposer } from "./listening/ListeningLogComposer";
 import { ListeningLogProvider } from "./listening/ListeningLogProvider";
 import { chatMedia, chatTokens as t } from "./tokens.stylex";
 
-function initials(name: string) {
-  return Array.from(name.trim()).slice(0, 2).join("") || "U";
-}
-
 function ChatShell({ user }: { user: Me }) {
   const { setKeyboardOpen } = useChat().actions;
-  const { state: historyState } = useChatHistory();
   const { preloadAppleMusic } = usePreviewPlayer().actions;
-  const showTopbarBrand = !(historyState.isDesktop && historyState.desktopOpen);
 
   useEffect(() => {
     preloadAppleMusic();
@@ -156,50 +146,26 @@ function ChatShell({ user }: { user: Me }) {
       <ChatHistorySidebar.MobileDrawer />
 
       <div {...props(styles.workspace)}>
-        <div {...props(styles.topChrome)}>
-          <AppShell.Topbar style={styles.topbar}>
-            <div {...props(styles.brand)}>
-              <ChatHistorySidebar.OpenTrigger />
-              {showTopbarBrand ? (
-                <>
-                  <AppShell.BrandIcon />
-                  <AppShell.BrandName />
-                </>
-              ) : null}
-            </div>
-            <div {...props(styles.account)}>
-              <Link to="/profile" aria-label="プロフィールを開く" {...props(styles.profileLink)}>
-                <Avatar {...props(styles.avatarSm)}>
-                  {user.image ? (
-                    <AvatarImage
-                      src={user.image}
-                      alt={user.name}
-                      referrerPolicy="no-referrer"
-                      {...props(styles.avatarImg)}
-                    />
-                  ) : null}
-                  <AvatarFallback>
-                    <span aria-hidden="true">{initials(user.name)}</span>
-                    <span data-slot="visually-hidden">{user.name}</span>
-                  </AvatarFallback>
-                </Avatar>
-                <span {...props(styles.accountName)}>{user.name}</span>
-              </Link>
-              <AppShell.SignOutButton />
-            </div>
-          </AppShell.Topbar>
+        <div {...props(styles.upperStage)}>
+          <ChatTopChrome.Root>
+            <ChatTopChrome.Bar>
+              <ChatTopChrome.Topbar>
+                <ChatTopChrome.Brand />
+                <ChatTopChrome.Account />
+              </ChatTopChrome.Topbar>
+              <ChatTopChrome.Player />
+            </ChatTopChrome.Bar>
 
-          <MiniPlayerBar />
+            <ListeningCalendarStrip />
+          </ChatTopChrome.Root>
 
-          <ListeningCalendarStrip />
+          <main {...props(styles.main)}>
+            <div {...props(styles.mainInner)}>
+              <ListeningDayShelf />
+              <ChatThread user={user} />
+            </div>
+          </main>
         </div>
-
-        <main {...props(styles.main)}>
-          <div {...props(styles.mainInner)}>
-            <ListeningDayShelf />
-            <ChatThread user={user} />
-          </div>
-        </main>
 
         <ComposerDock.Root>
           <ComposerDock.Header>
@@ -243,7 +209,9 @@ export function ChatWorkspace({ user }: { user: Me }) {
       <ChatProvider userPublicId={user.publicId}>
         <ListeningLogProvider>
           <DraftAssistProvider>
-            <ChatShell user={user} />
+            <ChatTopChrome.Provider>
+              <ChatShell user={user} />
+            </ChatTopChrome.Provider>
           </DraftAssistProvider>
         </ListeningLogProvider>
       </ChatProvider>
@@ -273,78 +241,21 @@ const styles = create({
     height: "100%",
     minHeight: 0,
   },
-  // Topbar とカレンダーストリップを単一の合成レイヤーへまとめることで、
-  // キーボード表示中に最上端のトップバー（y = 0 付近）だけが単独でオフスクリーン破棄され
-  // blur 時に一瞬消える WebKit の挙動を防ぐ。
-  topChrome: {
+  // Topbar・MiniPlayerBar・カレンダーストリップとメイン領域を単一の合成レイヤーへまとめることで、
+  // 感想入力中に Topbar を非表示にしても上部レイヤーがオフスクリーン破棄されず、
+  // blur 時にカレンダー全体がチラつく WebKit の挙動を防ぐ（#114 / #115）。
+  // ComposerDock（入力欄）は兄弟要素に置くため、入力要素の祖先に transform は付かない（ADR 0024）。
+  upperStage: {
     display: "flex",
-    flexShrink: 0,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: "0%",
     flexDirection: "column",
+    minHeight: 0,
     backgroundColor: t.bg,
     transform: "translateZ(0)",
     backfaceVisibility: "hidden",
     willChange: "transform",
-  },
-  // ChatWorkspace ではトップバー背後にコンテンツがスクロールしないため、
-  // 半透明＋backdrop-filter を外して topChrome と同一レイヤーで描画する。
-  topbar: {
-    position: "static",
-    zIndex: "auto",
-    flexShrink: 0,
-    backgroundColor: t.bg,
-    backdropFilter: "none",
-  },
-  brand: {
-    display: "flex",
-    gap: 8,
-    alignItems: "center",
-  },
-  account: {
-    display: "flex",
-    gap: 10,
-    alignItems: "center",
-  },
-  profileLink: {
-    display: "inline-flex",
-    gap: 8,
-    alignItems: "center",
-    paddingBlock: 4,
-    paddingInline: 8,
-    color: "inherit",
-    textDecoration: "none",
-    backgroundColor: {
-      default: "transparent",
-      ":hover": {
-        default: "transparent",
-        [chatMedia.hover]: t.hover,
-      },
-    },
-    borderRadius: 9999,
-    transition: "background-color 150ms ease",
-  },
-  avatarSm: {
-    display: "inline-flex",
-    flexShrink: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    width: 24,
-    height: 24,
-    overflow: "hidden",
-    fontSize: 11,
-    borderRadius: 9999,
-  },
-  avatarImg: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  },
-  accountName: {
-    display: {
-      default: "inline",
-      [chatMedia.compact]: "none",
-    },
-    fontSize: 13,
-    color: t.muted,
   },
   main: {
     flexGrow: "1",

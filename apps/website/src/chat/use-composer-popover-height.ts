@@ -26,17 +26,18 @@ export function useComposerPopoverHeight({
 
     let rafId = 0;
     const shellEl = targetComposer.closest("[data-chat-shell]");
-    const headerEl = shellEl?.querySelector("header") ?? null;
+    const topChromeEl =
+      shellEl?.querySelector("[data-chat-top-chrome]") ?? shellEl?.querySelector("header") ?? null;
     const compactMedia = window.matchMedia("(max-width: 540px)");
 
     const updateMaxHeight = () => {
       const rect = targetComposer.getBoundingClientRect();
       const vv = window.visualViewport;
       const shellTop = shellEl ? shellEl.getBoundingClientRect().top : 0;
-      // カレンダーストリップの上まで広げて使えるよう、上限基準はトップバー下端にする。
-      const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : shellTop;
+      // カレンダーストリップの上まで広げて使えるよう、上限基準は上部クローム（ヘッダー／再生バー）下端にする。
+      const topChromeBottom = topChromeEl ? topChromeEl.getBoundingClientRect().bottom : shellTop;
       const vvTop = vv ? vv.offsetTop : 0;
-      const topBoundary = Math.max(headerBottom, shellTop, vvTop);
+      const topBoundary = Math.max(topChromeBottom, shellTop, vvTop);
       const available = Math.floor(
         rect.top - topBoundary - chatPopover.sideOffset - collisionPadding,
       );
@@ -59,8 +60,8 @@ export function useComposerPopoverHeight({
     if (shellEl) {
       ro?.observe(shellEl);
     }
-    if (headerEl) {
-      ro?.observe(headerEl);
+    if (topChromeEl) {
+      ro?.observe(topChromeEl);
     }
     vv?.addEventListener("resize", scheduleUpdate);
     vv?.addEventListener("scroll", scheduleUpdate);
