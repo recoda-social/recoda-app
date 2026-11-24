@@ -33,6 +33,13 @@ jobs:
       - run: vp run api#typecheck
       - run: vp check
       - run: vp test
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: vp -C apps/website exec playwright install-deps webkit
+      - run: vp -C apps/website exec playwright install webkit
+      - run: vp run website#test:browser
       # 使われていないファイル・export・依存を見つける（knip.json）。
       - run: vp run knip
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignore": [".agents/**"],
-  "ignoreBinaries": ["similarity-ts"],
+  "ignoreBinaries": ["similarity-ts", "playwright"],
   "workspaces": {
     "apps/api": {
       "entry": ["cloudflare.config.ts", "scripts/*.ts"]
