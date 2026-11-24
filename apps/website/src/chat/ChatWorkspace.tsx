@@ -1,7 +1,7 @@
 import { create, props } from "@stylexjs/stylex";
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/react/avatar";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import type { Me } from "#/lib/auth";
 import { MiniPlayerBar } from "#/songs/MiniPlayerBar";
 import { usePreviewPlayer } from "#/songs/preview-player";
@@ -38,7 +38,7 @@ function ChatShell({ user }: { user: Me }) {
   // Gemini Web と同じく、キーボード出現時は iOS Safari ネイティブの挙動に任せて
   // JS でシェルの高さ・位置を書き換えない。キーボードが閉じた後にスクロールずれが
   // 残った場合だけ window.scrollTo(0, 0) で戻す。
-  useEffect(() => {
+  useLayoutEffect(() => {
     const html = document.documentElement;
     const { body } = document;
     const appRoot = document.getElementById("app");
@@ -156,41 +156,43 @@ function ChatShell({ user }: { user: Me }) {
       <ChatHistorySidebar.MobileDrawer />
 
       <div {...props(styles.workspace)}>
-        <AppShell.Topbar style={styles.topbar}>
-          <div {...props(styles.brand)}>
-            <ChatHistorySidebar.OpenTrigger />
-            {showTopbarBrand ? (
-              <>
-                <AppShell.BrandIcon />
-                <AppShell.BrandName />
-              </>
-            ) : null}
-          </div>
-          <div {...props(styles.account)}>
-            <Link to="/profile" aria-label="プロフィールを開く" {...props(styles.profileLink)}>
-              <Avatar {...props(styles.avatarSm)}>
-                {user.image ? (
-                  <AvatarImage
-                    src={user.image}
-                    alt={user.name}
-                    referrerPolicy="no-referrer"
-                    {...props(styles.avatarImg)}
-                  />
-                ) : null}
-                <AvatarFallback>
-                  <span aria-hidden="true">{initials(user.name)}</span>
-                  <span data-slot="visually-hidden">{user.name}</span>
-                </AvatarFallback>
-              </Avatar>
-              <span {...props(styles.accountName)}>{user.name}</span>
-            </Link>
-            <AppShell.SignOutButton />
-          </div>
-        </AppShell.Topbar>
+        <div {...props(styles.topChrome)}>
+          <AppShell.Topbar style={styles.topbar}>
+            <div {...props(styles.brand)}>
+              <ChatHistorySidebar.OpenTrigger />
+              {showTopbarBrand ? (
+                <>
+                  <AppShell.BrandIcon />
+                  <AppShell.BrandName />
+                </>
+              ) : null}
+            </div>
+            <div {...props(styles.account)}>
+              <Link to="/profile" aria-label="プロフィールを開く" {...props(styles.profileLink)}>
+                <Avatar {...props(styles.avatarSm)}>
+                  {user.image ? (
+                    <AvatarImage
+                      src={user.image}
+                      alt={user.name}
+                      referrerPolicy="no-referrer"
+                      {...props(styles.avatarImg)}
+                    />
+                  ) : null}
+                  <AvatarFallback>
+                    <span aria-hidden="true">{initials(user.name)}</span>
+                    <span data-slot="visually-hidden">{user.name}</span>
+                  </AvatarFallback>
+                </Avatar>
+                <span {...props(styles.accountName)}>{user.name}</span>
+              </Link>
+              <AppShell.SignOutButton />
+            </div>
+          </AppShell.Topbar>
 
-        <MiniPlayerBar />
+          <MiniPlayerBar />
 
-        <ListeningCalendarStrip />
+          <ListeningCalendarStrip />
+        </div>
 
         <main {...props(styles.main)}>
           <div {...props(styles.mainInner)}>
@@ -255,8 +257,8 @@ const styles = create({
     display: "flex",
     flexDirection: "row",
     width: "100%",
-    height: "100dvh",
-    overflow: "hidden",
+    height: "100%",
+    overflow: "clip",
     color: t.text,
     colorScheme: "light dark",
     backgroundColor: t.bg,
@@ -269,11 +271,28 @@ const styles = create({
     flexDirection: "column",
     minWidth: 0,
     height: "100%",
-    overflow: "hidden",
+    minHeight: 0,
   },
-  topbar: {
-    position: "relative",
+  // Topbar とカレンダーストリップを単一の合成レイヤーへまとめることで、
+  // キーボード表示中に最上端のトップバー（y = 0 付近）だけが単独でオフスクリーン破棄され
+  // blur 時に一瞬消える WebKit の挙動を防ぐ。
+  topChrome: {
+    display: "flex",
     flexShrink: 0,
+    flexDirection: "column",
+    backgroundColor: t.bg,
+    transform: "translateZ(0)",
+    backfaceVisibility: "hidden",
+    willChange: "transform",
+  },
+  // ChatWorkspace ではトップバー背後にコンテンツがスクロールしないため、
+  // 半透明＋backdrop-filter を外して topChrome と同一レイヤーで描画する。
+  topbar: {
+    position: "static",
+    zIndex: "auto",
+    flexShrink: 0,
+    backgroundColor: t.bg,
+    backdropFilter: "none",
   },
   brand: {
     display: "flex",

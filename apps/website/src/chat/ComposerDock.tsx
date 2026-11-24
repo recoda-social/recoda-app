@@ -81,6 +81,8 @@ const styles = create({
       [chatMedia.compact]: 8,
     },
   },
+  // ModeSwitch や TargetDatePicker を含むヘッダー行は入力要素を内包しないため、
+  // 合成レイヤーへ固定して iOS Safari の blur 時チラつきを防ぐ（入力欄の祖先には付けない）。
   header: {
     display: "flex",
     flexWrap: "wrap",
@@ -88,6 +90,8 @@ const styles = create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingInline: 2,
+    transform: "translateZ(0)",
+    backfaceVisibility: "hidden",
   },
   surface: {
     position: "relative",
