@@ -34,4 +34,15 @@ describe("createPostInput", () => {
       false,
     );
   });
+
+  test("listenedOn は省略可能で、指定するときは存在する YYYY-MM-DD 形式のみ受け付ける", () => {
+    expect(createPostInput.parse({ ...valid, listenedOn: "2026-11-24" })).toEqual({
+      songId: "1679278167",
+      isrc: "JPP302300157",
+      content: "好きな曲",
+      listenedOn: "2026-11-24",
+    });
+    expect(createPostInput.safeParse({ ...valid, listenedOn: "2026-02-30" }).success).toBe(false);
+    expect(createPostInput.safeParse({ ...valid, listenedOn: "2026/11/24" }).success).toBe(false);
+  });
 });

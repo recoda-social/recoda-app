@@ -122,6 +122,7 @@ function SimilarPostCard({
   catalogSong?: AppleSong;
   index: number;
 }) {
+  const { actions } = useSimilarPosts();
   const staggerStyle =
     index === 0
       ? styles.stagger0
@@ -170,6 +171,13 @@ function SimilarPostCard({
               style={styles.iconBtn}
               song={catalogSong}
               title={post.song.title ?? catalogSong.attributes.name}
+              onPlay={() =>
+                post.song &&
+                actions.recordPlayedSong({
+                  songId: post.song.appleSongId,
+                  isrc: post.song.isrc,
+                })
+              }
             />
           ) : null}
         </div>

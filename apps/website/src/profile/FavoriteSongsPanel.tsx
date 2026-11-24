@@ -32,7 +32,7 @@ function SongArt({ song, size, style }: { song: AppleSong; size: number; style: 
 }
 
 function AddFavoriteSongBody() {
-  const { state } = useProfile();
+  const { state, actions } = useProfile();
   const { state: searchState, actions: searchActions } = SongAddDialog.useFavoriteAdd();
   const { selected } = searchState;
   const existingIsrcs = new Set(state.favoriteSongs.map((item) => item.song.isrc.toUpperCase()));
@@ -79,7 +79,16 @@ function AddFavoriteSongBody() {
                       <span {...props(styles.badge)}>選択不可</span>
                     ) : null}
                   </Button>
-                  <PreviewToggle song={song} title={song.attributes.name} style={styles.iconBtn} />
+                  <PreviewToggle
+                    song={song}
+                    title={song.attributes.name}
+                    style={styles.iconBtn}
+                    onPlay={() => {
+                      if (isrc) {
+                        actions.recordPlayedSong({ songId: song.id, isrc });
+                      }
+                    }}
+                  />
                 </li>
               );
             })}

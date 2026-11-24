@@ -26,6 +26,7 @@ export async function createListeningLog(input: {
   songId: string;
   isrc: string;
   listenedOn: string;
+  dedupe?: boolean;
 }) {
   const res = await client.api["listening-logs"].$post({ json: input });
   const body = await res.json();

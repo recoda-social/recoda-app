@@ -5,7 +5,7 @@ import type { Database } from "../../lib/db.ts";
 import { createPublicId } from "../../lib/id.ts";
 import { getOrCreateSong } from "../../songs/repository.ts";
 import { ListeningLogOutputError } from "../errors.ts";
-import { insertListeningLog } from "../repository.ts";
+import { findListeningLogBySongAndDate, insertListeningLog } from "../repository.ts";
 import { listeningLogOutput } from "../schemas.ts";
 import type { createListeningLogInput } from "../schemas.ts";
 
@@ -25,22 +25,36 @@ export async function createListeningLog<FetchError extends Error>({
     return song;
   }
 
-  const inserted = await insertListeningLog({
-    db,
-    log: {
-      id: createPublicId(),
-      userId: user.id,
-      songIsrc: song.isrc,
-      listenedOn: input.listenedOn,
-    },
-  });
-  if (inserted instanceof Error) {
-    return inserted;
+  const existing = input.dedupe
+    ? await findListeningLogBySongAndDate({
+        db,
+        userId: user.id,
+        songIsrc: song.isrc,
+        listenedOn: input.listenedOn,
+      })
+    : null;
+  if (existing instanceof Error) {
+    return existing;
   }
 
-  const output = listeningLogOutput.safeParse({ ...inserted, song });
+  const row =
+    existing ??
+    (await insertListeningLog({
+      db,
+      log: {
+        id: createPublicId(),
+        userId: user.id,
+        songIsrc: song.isrc,
+        listenedOn: input.listenedOn,
+      },
+    }));
+  if (row instanceof Error) {
+    return row;
+  }
+
+  const output = listeningLogOutput.safeParse({ ...row, song });
   if (!output.success) {
-    return new ListeningLogOutputError({ logId: inserted.id, cause: output.error });
+    return new ListeningLogOutputError({ logId: row.id, cause: output.error });
   }
   return output.data;
 }

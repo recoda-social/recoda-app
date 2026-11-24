@@ -8,6 +8,26 @@ import {
   ListeningLogQueryError,
 } from "./errors.ts";
 
+export async function findListeningLogBySongAndDate({
+  db,
+  userId,
+  songIsrc,
+  listenedOn,
+}: {
+  db: Database;
+  userId: string;
+  songIsrc: string;
+  listenedOn: string;
+}) {
+  return db.query.listeningLogs
+    .findFirst({
+      where: { userId, songIsrc, listenedOn },
+      orderBy: { createdAt: "asc" },
+    })
+    .then((row) => row ?? null)
+    .catch((error: unknown) => new ListeningLogQueryError({ cause: error }));
+}
+
 export async function insertListeningLog({ db, log }: { db: Database; log: NewListeningLog }) {
   const inserted = await db
     .insert(listeningLogs)

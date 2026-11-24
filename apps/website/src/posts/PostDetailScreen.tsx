@@ -51,7 +51,15 @@ function initials(name: string) {
   return Array.from(name.trim()).slice(0, 2).join("") || "U";
 }
 
-function SongRow({ post, catalogSong }: { post: PostView; catalogSong?: AppleSong }) {
+function SongRow({
+  post,
+  catalogSong,
+  onPlay,
+}: {
+  post: PostView;
+  catalogSong?: AppleSong;
+  onPlay?: () => void;
+}) {
   if (!post.song) {
     return null;
   }
@@ -90,16 +98,28 @@ function SongRow({ post, catalogSong }: { post: PostView; catalogSong?: AppleSon
         ) : null}
       </div>
       {catalogSong ? (
-        <PreviewToggle song={catalogSong} title={title} style={styles.iconBtn} />
+        <PreviewToggle song={catalogSong} title={title} style={styles.iconBtn} onPlay={onPlay} />
       ) : null}
     </div>
   );
 }
 
 function SimilarPostCard({ post, catalogSong }: { post: PostView; catalogSong?: AppleSong }) {
+  const { actions } = usePostDetail();
+
   return (
     <article {...props(styles.similarCard)}>
-      <SongRow post={post} catalogSong={catalogSong} />
+      <SongRow
+        post={post}
+        catalogSong={catalogSong}
+        onPlay={() =>
+          post.song &&
+          actions.recordPlayedSong({
+            songId: post.song.appleSongId,
+            isrc: post.song.isrc,
+          })
+        }
+      />
       <p {...props(styles.similarQuote)}>{post.content}</p>
       <div {...props(styles.similarAuthor)}>
         <Avatar {...props(styles.avatarSm)}>

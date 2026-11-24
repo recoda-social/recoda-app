@@ -1,5 +1,6 @@
 import {
   likes,
+  listeningLogs,
   postEmbeddings,
   postIpLogs,
   posts,
@@ -7,28 +8,58 @@ import {
   postSimilarCaches,
   users,
 } from "db";
-import type { NewPost } from "db";
-import { and, asc, eq, exists, gt, inArray, isNull, sql } from "drizzle-orm";
+import type { NewListeningLog, NewPost } from "db";
+import { and, asc, eq, exists, gt, inArray, isNull, notExists, sql } from "drizzle-orm";
 import type { Database } from "../lib/db.ts";
 import { PostInsertError, PostQueryError } from "./errors.ts";
 
 /**
- * 投稿と、投稿時の IP アドレスを保存する。
+ * 投稿と、投稿時の IP アドレス、および当日の聴いた曲ログ（未登録のときのみ）を保存する。
  * libSQL の batch は 1 つのトランザクションで実行されるので、片方だけが保存されることはない。
  */
 export async function insertPostWithIpLog({
   db,
   post,
   ipAddress,
+  listeningLog,
 }: {
   db: Database;
   post: NewPost;
   ipAddress: string;
+  listeningLog: NewListeningLog;
 }) {
   const result = await db
     .batch([
       db.insert(posts).values(post).returning(),
       db.insert(postIpLogs).values({ postId: post.id, userId: post.userId, ipAddress }),
+      db.insert(listeningLogs).select(
+        db
+          .select({
+            id: sql<string>`${listeningLog.id}`.as("id"),
+            userId: users.id,
+            songIsrc: sql<string>`${listeningLog.songIsrc}`.as("song_isrc"),
+            listenedOn: sql<string>`${listeningLog.listenedOn}`.as("listened_on"),
+            createdAt: sql<number>`${Date.now()}`.as("created_at"),
+          })
+          .from(users)
+          .where(
+            and(
+              eq(users.id, listeningLog.userId),
+              notExists(
+                db
+                  .select({ id: listeningLogs.id })
+                  .from(listeningLogs)
+                  .where(
+                    and(
+                      eq(listeningLogs.userId, listeningLog.userId),
+                      eq(listeningLogs.songIsrc, listeningLog.songIsrc),
+                      eq(listeningLogs.listenedOn, listeningLog.listenedOn),
+                    ),
+                  ),
+              ),
+            ),
+          ),
+      ),
     ])
     .catch((error: unknown) => new PostInsertError({ cause: error }));
   if (result instanceof Error) {

@@ -5,6 +5,7 @@ import { catalogSongsQuery } from "#/lib/musickit";
 import type { AppleSong } from "#/lib/musickit";
 import { similarPostsQuery } from "#/lib/posts";
 import type { PostView } from "#/lib/posts";
+import { useRecordTodayListeningLog } from "./listening/use-record-today-listening-log";
 import { useSearchingNotes } from "./SearchingNotes";
 import { SimilarPostsContext } from "./SimilarPostsContext";
 
@@ -53,6 +54,8 @@ export function SimilarPostsProvider({
     [catalogSongs],
   );
 
+  const recordPlayedSong = useRecordTodayListeningLog();
+
   return (
     <SimilarPostsContext
       value={{
@@ -65,6 +68,7 @@ export function SimilarPostsProvider({
         actions: {
           setIncludeSameSong,
           lookupCatalogSong,
+          recordPlayedSong,
         },
         meta: {
           postId,

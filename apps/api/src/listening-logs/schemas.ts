@@ -5,7 +5,7 @@ import { songOutput } from "../songs/schemas.ts";
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-const dateKeySchema = z
+export const dateKeySchema = z
   .string()
   .regex(DATE_KEY_PATTERN, "日付は YYYY-MM-DD 形式で指定してください")
   .refine((value) => {
@@ -25,6 +25,7 @@ export const createListeningLogInput = z.object({
   songId: songInsert.shape.appleSongId,
   isrc: songInsert.shape.isrc,
   listenedOn: dateKeySchema,
+  dedupe: z.boolean().optional(),
 });
 
 export const listListeningLogsQuery = z

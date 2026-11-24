@@ -1,4 +1,4 @@
-import { postIpLogs, posts, users } from "db";
+import { listeningLogs, postIpLogs, posts, users } from "db";
 import { beforeEach, describe, expect, test } from "vite-plus/test";
 import type { SessionUser } from "../../../src/auth/session.ts";
 import type { CatalogSong } from "../../../src/lib/apple-music/catalog.ts";
@@ -62,6 +62,49 @@ describe("createPost", () => {
     expect(await db.select().from(postIpLogs)).toMatchObject([
       { postId: post.id, userId: "u1", ipAddress: "203.0.113.1" },
     ]);
+    expect(await db.select().from(listeningLogs)).toMatchObject([
+      { userId: "u1", songIsrc: song.isrc },
+    ]);
+  });
+
+  test("listenedOn を指定したとき、その日の聴いた曲に追加し、同じ日に同じ曲が既にあれば重複させない", async () => {
+    const first = await createPost({
+      db,
+      fetchSong: async () => song,
+      user,
+      ipAddress: "203.0.113.1",
+      input: { ...input, listenedOn: "2026-11-24" },
+    });
+    if (first instanceof Error) {
+      throw first;
+    }
+
+    const second = await createPost({
+      db,
+      fetchSong: async () => song,
+      user,
+      ipAddress: "203.0.113.1",
+      input: { ...input, content: "また聴いた", listenedOn: "2026-11-24" },
+    });
+    if (second instanceof Error) {
+      throw second;
+    }
+
+    const nextDay = await createPost({
+      db,
+      fetchSong: async () => song,
+      user,
+      ipAddress: "203.0.113.1",
+      input: { ...input, content: "翌日も聴いた", listenedOn: "2026-11-25" },
+    });
+    if (nextDay instanceof Error) {
+      throw nextDay;
+    }
+
+    expect(await db.select().from(listeningLogs)).toMatchObject([
+      { userId: "u1", songIsrc: song.isrc, listenedOn: "2026-11-24" },
+      { userId: "u1", songIsrc: song.isrc, listenedOn: "2026-11-25" },
+    ]);
   });
 
   test("IP アドレスがないときは、Apple も呼ばず、何も保存しない", async () => {
@@ -107,5 +150,6 @@ describe("createPost", () => {
     expect(post).toBeInstanceOf(Error);
     expect(await db.select().from(posts)).toEqual([]);
     expect(await db.select().from(postIpLogs)).toEqual([]);
+    expect(await db.select().from(listeningLogs)).toEqual([]);
   });
 });
