@@ -1,7 +1,10 @@
 import { bindings, defineConfig, triggers } from "cf/config";
+import { loadEnv } from "vite-plus";
 // cf-worker の import attribute は Worker エントリーポイントの名前空間インポートを要求する。
 // oxlint-disable-next-line import/no-namespace
 import * as entrypoint from "./src/index.ts" with { type: "cf-worker" };
+
+const configDir = import.meta.dirname;
 
 // Worker は本番の 1 つだけにし、ステージングはその Worker の Preview（名前は staging）として作る。
 // workers.dev の URL は <Worker 名>.recoda-social.workers.dev、Preview は <Preview 名>-<Worker 名>.recoda-social.workers.dev になる。
@@ -9,64 +12,77 @@ const WORKER_NAME = "app";
 
 // シークレットの値は、ローカルでは .env に書き、デプロイ先ではシークレットとして登録する（.env.example を参照）。
 // secret() を 1 つでも宣言すると、ここで宣言していない .env の値は Worker に渡らない。
-export default defineConfig(({ isPreview }) => ({
-  worker: {
-    name: WORKER_NAME,
-    compatibilityDate: "2026-11-13",
-    entrypoint,
-    // 画面の URL（/、/search など）は SPA の index.html を返し、/api/* だけを Worker で処理する。
-    assets: {
-      notFoundHandling: "single-page-application",
-      runWorkerFirst: ["/api/*"],
+export default defineConfig(({ isPreview, mode }) => {
+  const devAllowedHost =
+    mode === "development"
+      ? (process.env.DEV_ALLOWED_HOST ?? loadEnv(mode, configDir, "").DEV_ALLOWED_HOST ?? "")
+      : "";
+
+  return {
+    worker: {
+      name: WORKER_NAME,
+      compatibilityDate: "2026-11-13",
+      entrypoint,
+      // 画面の URL（/、/search など）は SPA の index.html を返し、/api/* だけを Worker で処理する。
+      assets: {
+        notFoundHandling: "single-page-application",
+        runWorkerFirst: ["/api/*"],
+      },
+      // Workers Logs に呼び出しごとの記録（CPU 時間を含む）を残す。
+      // OAuth のコールバックの URL には認可コードが入るので、クエリ文字列は記録しない。
+      observability: { enabled: true, redactQueryString: true },
+      // 保存期間（90 日）を過ぎた論理削除の行と IP ログを、毎日 3:00（日本時間）に物理削除する。
+      // Preview は Cron トリガーを持てない（cf の Preview のアップロードが triggers を受け付けない）ので、本番だけに付ける。
+      triggers: isPreview ? undefined : [triggers.scheduled({ schedule: "0 18 * * *" })],
+      env: {
+        BETTER_AUTH_SECRET: bindings.secret(),
+        GOOGLE_CLIENT_ID: bindings.secret(),
+        GOOGLE_CLIENT_SECRET: bindings.secret(),
+        TURSO_DATABASE_URL: bindings.secret(),
+        TURSO_AUTH_TOKEN: bindings.secret(),
+        // 本番と Preview で同じ値にする。ローカルでは設定しない（apps/api/src/auth/auth.ts の plugins を参照）
+        OAUTH_PROXY_SECRET: bindings.secret(),
+        // ローカル開発時に Tailscale Serve 等のホストを許可する（本番・Preview では空文字にする）
+        DEV_ALLOWED_HOST: bindings.text(devAllowedHost),
+        // Apple Music API の開発者トークンを署名する鍵（Media Services を有効にした鍵）
+        APPLE_TEAM_ID: bindings.secret(),
+        APPLE_KEY_ID: bindings.secret(),
+        APPLE_MUSIC_PRIVATE_KEY: bindings.secret(),
+        // ユーザーごとの回数制限（docs/adr/0017-rate-limit-per-user.md）。namespace はアカウント内で一意の番号。
+        // 回数は Cloudflare の拠点ごとに数えるので、上限は目安である。
+        WRITE_RATE_LIMIT: bindings.rateLimit({
+          namespace: "1001",
+          simple: { limit: 10, period: 60 },
+        }),
+        LIKE_RATE_LIMIT: bindings.rateLimit({
+          namespace: "1002",
+          simple: { limit: 30, period: 60 },
+        }),
+        // 投稿の埋め込み（Workers AI の PLaMo-Embedding-1B）を作る。
+        AI: bindings.ai(),
+        // 元のベクトル x（2048 次元）を入れる D1。cf d1 create で作り、ID で指定する。
+        // 名前だけで指定すると、デプロイのたびに cf がデータベースを探して作ろうとし、CI のトークンでは 401 になったため。
+        // 1 つで約 12 万投稿分。埋まりそうになったら 02 以降を足す（設計ドキュメント）。
+        X_STORE: bindings.d1(
+          isPreview
+            ? { id: "bf74607a-5729-4970-b008-78d587eba6fd", name: "x-store-staging-01" }
+            : { id: "db0cdaf4-9817-4755-89a0-fa332932c4f7", name: "x-store-01" },
+        ),
+        READ_RATE_LIMIT: bindings.rateLimit({
+          namespace: "1003",
+          simple: { limit: 60, period: 60 },
+        }),
+        // 感想記述支援の判断モデル呼び出し回数制限。超過時はフェイルオープンで沈黙を返す。
+        DRAFT_ASSIST_RATE_LIMIT: bindings.rateLimit({
+          namespace: "1004",
+          simple: { limit: 30, period: 60 },
+        }),
+        // 感想記述支援の判断モデル設定（API キーのみ secret、それ以外は plain text）。
+        DRAFT_ASSIST_PROVIDER: bindings.text("clef-flash"),
+        DRAFT_ASSIST_MODEL: bindings.text("@cf/cloudflare/clef-flash"),
+        DRAFT_ASSIST_API_URL: bindings.text(""),
+        DRAFT_ASSIST_API_KEY: bindings.secret(),
+      },
     },
-    // Workers Logs に呼び出しごとの記録（CPU 時間を含む）を残す。
-    // OAuth のコールバックの URL には認可コードが入るので、クエリ文字列は記録しない。
-    observability: { enabled: true, redactQueryString: true },
-    // 保存期間（90 日）を過ぎた論理削除の行と IP ログを、毎日 3:00（日本時間）に物理削除する。
-    // Preview は Cron トリガーを持てない（cf の Preview のアップロードが triggers を受け付けない）ので、本番だけに付ける。
-    triggers: isPreview ? undefined : [triggers.scheduled({ schedule: "0 18 * * *" })],
-    env: {
-      BETTER_AUTH_SECRET: bindings.secret(),
-      GOOGLE_CLIENT_ID: bindings.secret(),
-      GOOGLE_CLIENT_SECRET: bindings.secret(),
-      TURSO_DATABASE_URL: bindings.secret(),
-      TURSO_AUTH_TOKEN: bindings.secret(),
-      // 本番と Preview で同じ値にする。ローカルでは設定しない（apps/api/src/auth/auth.ts の plugins を参照）
-      OAUTH_PROXY_SECRET: bindings.secret(),
-      // ローカル開発時に Tailscale Serve 等のホストを許可する（本番・Preview では設定しない）
-      DEV_ALLOWED_HOST: bindings.text(""),
-      // Apple Music API の開発者トークンを署名する鍵（Media Services を有効にした鍵）
-      APPLE_TEAM_ID: bindings.secret(),
-      APPLE_KEY_ID: bindings.secret(),
-      APPLE_MUSIC_PRIVATE_KEY: bindings.secret(),
-      // ユーザーごとの回数制限（docs/adr/0017-rate-limit-per-user.md）。namespace はアカウント内で一意の番号。
-      // 回数は Cloudflare の拠点ごとに数えるので、上限は目安である。
-      WRITE_RATE_LIMIT: bindings.rateLimit({
-        namespace: "1001",
-        simple: { limit: 10, period: 60 },
-      }),
-      LIKE_RATE_LIMIT: bindings.rateLimit({ namespace: "1002", simple: { limit: 30, period: 60 } }),
-      // 投稿の埋め込み（Workers AI の PLaMo-Embedding-1B）を作る。
-      AI: bindings.ai(),
-      // 元のベクトル x（2048 次元）を入れる D1。cf d1 create で作り、ID で指定する。
-      // 名前だけで指定すると、デプロイのたびに cf がデータベースを探して作ろうとし、CI のトークンでは 401 になったため。
-      // 1 つで約 12 万投稿分。埋まりそうになったら 02 以降を足す（設計ドキュメント）。
-      X_STORE: bindings.d1(
-        isPreview
-          ? { id: "bf74607a-5729-4970-b008-78d587eba6fd", name: "x-store-staging-01" }
-          : { id: "db0cdaf4-9817-4755-89a0-fa332932c4f7", name: "x-store-01" },
-      ),
-      READ_RATE_LIMIT: bindings.rateLimit({ namespace: "1003", simple: { limit: 60, period: 60 } }),
-      // 感想記述支援の判断モデル呼び出し回数制限。超過時はフェイルオープンで沈黙を返す。
-      DRAFT_ASSIST_RATE_LIMIT: bindings.rateLimit({
-        namespace: "1004",
-        simple: { limit: 30, period: 60 },
-      }),
-      // 感想記述支援の判断モデル設定（API キーのみ secret、それ以外は plain text）。
-      DRAFT_ASSIST_PROVIDER: bindings.text("clef-flash"),
-      DRAFT_ASSIST_MODEL: bindings.text("@cf/cloudflare/clef-flash"),
-      DRAFT_ASSIST_API_URL: bindings.text(""),
-      DRAFT_ASSIST_API_KEY: bindings.secret(),
-    },
-  },
-}));
+  };
+});
