@@ -333,8 +333,15 @@ export function ListeningCalendarStrip() {
 }
 
 const styles = create({
+  // 入力欄（ComposerDock）が通常フローのまま複数行で上方向へ伸びたとき、
+  // カレンダー側が下端から縮んでキーボード裏への押し出しを防ぐ（#115）。
+  // ChatWorkspace の単一 upperStage 合成レイヤー内で描画される（#114 / #115）。
   strip: {
-    flexShrink: 0,
+    flexGrow: 0,
+    flexShrink: 1,
+    flexBasis: "auto",
+    minHeight: 0,
+    overflow: "clip",
     backgroundColor: t.surface,
     borderBottomColor: t.border,
     borderBottomStyle: "solid",
