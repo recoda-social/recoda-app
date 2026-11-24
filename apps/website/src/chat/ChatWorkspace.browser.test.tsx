@@ -221,10 +221,26 @@ describe("ChatWorkspace WebKit layout and compositing invariants", () => {
     expect(shellStyle.overflow).toBe("clip");
     expect(Math.round(shell.getBoundingClientRect().height)).toBe(664);
 
-    // #115: ComposerDock は通常フロー（position: relative; flexShrink: 0）
+    // #115: ComposerDock は通常フロー（position: relative; flexShrink: 0）で、
+    // 上部のモードスイッチ背面のみ <main> と重ねて easing gradient でフェードする
     const dockStyle = getComputedStyle(composerDock);
     expect(dockStyle.position).toBe("relative");
     expect(dockStyle.flexShrink).toBe("0");
+    expect(Number.parseFloat(dockStyle.marginTop)).toBeLessThan(0);
+    expect(dockStyle.backgroundImage).toContain("linear-gradient");
+    expect(dockStyle.pointerEvents).toBe("none");
+    expect(getComputedStyle(composerSurface).pointerEvents).toBe("auto");
+    expect(getComputedStyle(composerSurface).boxShadow).toBe("none");
+    if (modeSwitch) {
+      expect(getComputedStyle(modeSwitch).pointerEvents).toBe("auto");
+    }
+
+    // 入力欄周りの背景色と iOS Safari のアドレスバー・キーボード背後の背景色を一致させる
+    expect(getComputedStyle(document.documentElement).backgroundColor).toBe(
+      shellStyle.backgroundColor,
+    );
+    expect(getComputedStyle(document.body).backgroundColor).toBe(shellStyle.backgroundColor);
+    expect(getComputedStyle(container).backgroundColor).toBe(shellStyle.backgroundColor);
 
     // ADR 0024: タッチ端末では自動ズーム防止のため入力文字サイズ >= 16px
     expect(Number.parseFloat(getComputedStyle(textarea).fontSize)).toBeGreaterThanOrEqual(16);
